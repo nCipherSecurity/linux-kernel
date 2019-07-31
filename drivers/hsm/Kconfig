@@ -1,0 +1,12 @@
+menuconfig HSM
+   bool "Support for Hardware Security Modules"
+   ---help---
+     A Hardware Securxoity Module (HSM) is a device which provides
+     a secure environment in which to perform encryption and key
+     management.
+
+     Choose and use this menu if you expect to use one or more
+     Hardware Security Modules.
+
+source "drivers/hsm/ncipher/nshield_solo/Kconfig"
+#endmenu
