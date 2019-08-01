@@ -1,4 +1,4 @@
-config HSM_NCIPHER_SOLO
+config HSM_NSHIELD_SOLO
    tristate "nCipher Solo and SoloXC family of PCIe HSMs"
    depends on PCI && HSM
    default m if PCI && HSM && MODULES
