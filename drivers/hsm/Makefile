@@ -1,1 +1,1 @@
-obj-$(CONFIG_HSM_NCIPHER_SOLO) += ncipher/nshield_solo/
+obj-$(CONFIG_HSM_NSHIELD_SOLO) += ncipher/nshield_solo/
