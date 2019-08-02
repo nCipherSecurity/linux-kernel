@@ -16,9 +16,9 @@
 
 /*
 
-nfp_hostif.h: COMPANY PCI HSM host interface declarations
+nfp_hostif.h: nCipher PCI HSM host interface declarations
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 
@@ -72,7 +72,7 @@ void nfp_write_complete( struct nfp_dev *pdev, int ok);
 #define NFP_DMA_NBYTES_OFFSET (4)
 #define NFP_DMA_ADDRESS_OFFSET (8)
 
-#define NFP_DRVNAME "COMPANY nFast PCI driver"
+#define NFP_DRVNAME "nCipher nFast PCI driver"
 
 #define NFP_CLSNAME "nfp"
 

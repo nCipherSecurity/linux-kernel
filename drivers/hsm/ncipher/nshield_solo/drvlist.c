@@ -1,8 +1,8 @@
 /*
 
-drvlist.c: COMPANY PCI HSM command driver list
+drvlist.c: nCipher PCI HSM command driver list
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 
