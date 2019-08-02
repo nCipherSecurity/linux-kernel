@@ -1,6 +1,6 @@
 /*************************************************************************
  *
- * nfp_cmd.h: COMPANY PCI HSM command driver declarations
+ * nfp_cmd.h: nCipher PCI HSM command driver declarations
  *
  *-------------------------------------------------------------------------
  *
@@ -8,7 +8,7 @@
  *
  * Module Description:
  *
- *    This file defines the COMPANY PCI HSM command driver interface.
+ *    This file defines the nCipher PCI HSM command driver interface.
  *
  *-------------------------------------------------------------------------
  *
@@ -22,13 +22,13 @@
  *
  *-------------------------------------------------------------------------
  *
- *   This document contains proprietary trade secrets of COMPANY;
+ *   This document contains proprietary trade secrets of nCipher Security;
  *   its receipt or possession does not convey any right to reproduce,
  *   disclose its contents, or to manufacture, use, or sell anything that
  *   it may describe. Reproduction, disclosure, or use without specific
- *   authorization of COMPANY is strictly forbidden.
+ *   authorization of nCipher Security is strictly forbidden.
  *
- *              Copyright (C) 2015 by COMPANY
+ *              Copyright (C) nCipher Security Limited 2019
  *                       ALL RIGHTS RESERVED
  *     Rights Reserved Under the Copyright Laws of the United States.
  *
@@ -36,8 +36,8 @@
 
 /** @file
  *
- * Defines the COMPANY PCI HSM command driver interface.
-  * COPYRIGHT
+ * Defines the nCipher PCI HSM command driver interface.
+ * (c) nCipher Security Limited 2019
  */
 
 #ifdef __cplusplus

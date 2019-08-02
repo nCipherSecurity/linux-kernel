@@ -1,6 +1,6 @@
 /*
 devinit.h: devinit declaration removed from since 3.8 kernel
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
  */
 
 #ifndef DEVINIT_H_

@@ -16,9 +16,9 @@
 
 /*
 
-nfp_osif.h: COMPANY PCI HSM OS interface declarations
+nfp_osif.h: nCipher PCI HSM OS interface declarations
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 

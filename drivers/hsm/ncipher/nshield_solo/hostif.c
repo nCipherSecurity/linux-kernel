@@ -16,9 +16,9 @@
 
 /** @file
  *
- hostif.c: COMPANY PCI HSM linux host interface
+ hostif.c: nCipher PCI HSM linux host interface
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
  history
 
