@@ -16,9 +16,9 @@
 
 /*
 
-nfp_error.h: COMPANY PCI HSM error handling
+nfp_error.h: nCipher PCI HSM error handling
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 

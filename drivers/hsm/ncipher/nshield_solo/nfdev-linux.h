@@ -2,7 +2,14 @@
 
 nfdev-linux.h: nFast linux specific device ioctl interface.
 
-(C) Copyright COMPANY Corporation Ltd 1998 All rights reserved
+ * (C) nCipher Security Limited 2019
+ *
+ * The copyright in this software is the property of nCipher Security Limited.
+ * This software may not be used, sold, licensed, disclosed, transferred, copied,
+ * modified or reproduced in whole or in part or in any manner or form other than
+ * in accordance with the licence agreement provided with this software or
+ * otherwise without the prior written consent of nCipher Security Limited.
+ *
 
 history
 

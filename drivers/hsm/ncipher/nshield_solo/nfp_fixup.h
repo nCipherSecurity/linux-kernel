@@ -1,8 +1,8 @@
 /*
 
-nfp_fixup.h: COMPANY PCI HSM linux version fixup macros
+nfp_fixup.h: nCipher PCI HSM linux version fixup macros
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 
@@ -45,8 +45,8 @@ history
 module_param(nfp_debug,int,0644); \
 module_param(nfp_ifvers,int,0444);
 #define NFP_MODULE_PREAMBLE \
-  MODULE_AUTHOR("COMPANY"); \
-  MODULE_DESCRIPTION("COMPANY PCI HSM driver"); \
+  MODULE_AUTHOR("nCipher"); \
+  MODULE_DESCRIPTION("nCipher PCI HSM driver"); \
   NFP_MODULE_PARAMETERS \
   MODULE_PARM_DESC(nfp_debug,"debug level (1-4)"); \
   MODULE_PARM_DESC(nfp_ifvers,"maximum interface version (1-2), or any (0)");

@@ -16,9 +16,9 @@
 
 /*
 
- fsl_osif.h: COMPANY PCI HSM FSL command operating system interface
+ fsl_osif.h: nCipher PCI HSM FSL command operating system interface
 
- (C) Copyright COMPANY Corporation Ltd 2015 All rights reserved
+ (C) Copyright nCipher Security Limited 2019 All rights reserved
 
  */
 
