@@ -1,8 +1,8 @@
 config HSM_NSHIELD_SOLO
-   tristate "nCipher Solo and SoloXC family of PCIe HSMs"
+   tristate "nCipher Solo and Solo XC family of PCIe HSMs"
    depends on PCI && HSM
    default m if PCI && HSM && MODULES
    default y if PCI && HSM
    ---help---
      Select this as built-in or module if you expect
-     to use an HSM from nCipher's Solo or SoloXC range.
+     to use a Hardware Security Module from nCipher's Solo or Solo XC range.
