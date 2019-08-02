@@ -16,9 +16,9 @@
 
 /*
 
-nfp_dev.h: COMPANY PCI HSM linux device declarations
+nfp_dev.h: nCipher PCI HSM linux device declarations
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 

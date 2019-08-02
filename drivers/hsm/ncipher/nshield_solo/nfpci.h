@@ -21,15 +21,19 @@
  *
  *-------------------------------------------------------------------------
  *
- *   This document contains proprietary trade secrets of COMPANY;
+ *   This document contains proprietary trade secrets of nCipher Security;
  *   its receipt or possession does not convey any right to reproduce,
  *   disclose its contents, or to manufacture, use, or sell anything that
  *   it may describe. Reproduction, disclosure, or use without specific
- *   authorization of COMPANY is strictly forbidden.
+ *   authorization of nCipher Security is strictly forbidden.
  *
- *              Copyright (C) 2015 by COMPANY
- *                       ALL RIGHTS RESERVED
- *     Rights Reserved Under the Copyright Laws of the United States.
+ * (C) nCipher Security Limited 2019
+ *
+ * The copyright in this software is the property of nCipher Security Limited.
+ * This software may not be used, sold, licensed, disclosed, transferred, copied,
+ * modified or reproduced in whole or in part or in any manner or form other than
+ * in accordance with the licence agreement provided with this software or
+ * otherwise without the prior written consent of nCipher Security Limited.
  *
  *************************************************************************/
 
