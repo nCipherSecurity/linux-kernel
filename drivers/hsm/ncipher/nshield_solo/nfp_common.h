@@ -1,8 +1,8 @@
 /*
 
-nfp.h: COMPANY PCI HSM Linux OS interface declarations
+nfp.h: nCipher PCI HSM Linux OS interface declarations
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 

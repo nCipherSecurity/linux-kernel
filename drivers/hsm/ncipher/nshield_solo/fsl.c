@@ -16,9 +16,9 @@
 
 /*
 
- fsl.c: COMPANY PCI HSM FSL command driver
+ fsl.c: nCipher PCI HSM FSL command driver
 
- (C) Copyright COMPANY Corporation Ltd 2002 All rights reserved
+ (C) Copyright nCipher Security Limited 2019 All rights reserved
 
  history
 
@@ -859,7 +859,7 @@ static nfp_err fsl_write(int unsigned addr, char const *block, int len, void *ct
 }
 
 /** FSL c293 device configuration. */
-const nfpcmd_dev fsl_c293_cmddev = { "COMPANY Next Gen PCI",
+const nfpcmd_dev fsl_c293_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_C293,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -868,7 +868,7 @@ const nfpcmd_dev fsl_c293_cmddev = { "COMPANY Next Gen PCI",
         fsl_chupdate, fsl_ensure_reading, 0, 0, 0 };
 
 /** FSL Hammerhead p3041 device configuration. */
-const nfpcmd_dev fsl_p3041_cmddev = { "COMPANY Next Gen PCI",
+const nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_P3041,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -878,7 +878,7 @@ const nfpcmd_dev fsl_p3041_cmddev = { "COMPANY Next Gen PCI",
 
 /** FSL Sawshark p3041 device configuration. */
 #if defined(__unix__) || defined(__sun) || defined(__hpux)
-const nfpcmd_dev fsl_t1022_cmddev = { "COMPANY Next Gen PCI",
+const nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -889,7 +889,7 @@ const nfpcmd_dev fsl_t1022_cmddev = { "COMPANY Next Gen PCI",
 /* NOTE setting FSL_MEMSIZE for both Element [0] and Element [1] in order
 to accomodate scenarios when both Bar0 and Bar1 Mem Resources are Available
 */
-const nfpcmd_dev fsl_t1022_cmddev = { "COMPANY Next Gen PCI",
+const nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { FSL_MEMSIZE, FSL_MEMSIZE, 0, 0, 0, 0 },

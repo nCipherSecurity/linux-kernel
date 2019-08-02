@@ -16,9 +16,9 @@
 
 /*
 
-osif.c: COMPANY PCI HSM OS interface
+osif.c: nCipher PCI HSM OS interface
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 

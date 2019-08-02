@@ -1,5 +1,13 @@
 /** \file nfdev-common.h
  *
+ * (C) nCipher Security Limited 2019
+ *
+ * The copyright in this software is the property of nCipher Security Limited.
+ * This software may not be used, sold, licensed, disclosed, transferred, copied,
+ * modified or reproduced in whole or in part or in any manner or form other than
+ * in accordance with the licence agreement provided with this software or
+ * otherwise without the prior written consent of nCipher Security Limited.
+ *
  * \brief nFast device driver (not generic SCSI) ioctl struct definition file
  *  include NFDEV-$(system) for ioctl number definitions
  *

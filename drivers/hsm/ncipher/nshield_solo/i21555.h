@@ -1,5 +1,5 @@
 /*
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
  *
  *
  */

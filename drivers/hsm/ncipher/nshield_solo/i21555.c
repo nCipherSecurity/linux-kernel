@@ -1,8 +1,8 @@
 /*
 
-i21555.c: COMPANY PCI HSM intel 21555 command driver
+i21555.c: nCipher PCI HSM intel 21555 command driver
 
-  * COPYRIGHT
+ * (c) nCipher Security Limited 2019
 
 history
 
@@ -456,7 +456,7 @@ static nfp_err i21555_get_status( nfdev_status_str *status, void *ctx ) {
 /* command device structure ------------------------------------- */
 
 const nfpcmd_dev i21555_cmddev = {
-  .name = "COMPANY Gen 2 PCI",
+  .name = "nCipher Gen 2 PCI",
   .vendorid = PCI_VENDOR_ID_INTEL,
   .deviceid = PCI_DEVICE_ID_INTEL_21555,
   .sub_vendorid = PCI_VENDOR_ID_NCIPHER,
