@@ -75,29 +75,29 @@ static struct class *nfp_class;
  */
 
 /**
- * NFP module debug parameter.
+ * NSHIELD SOLO module debug parameter.
  *
  * This value can be overridden when the module is loaded, for example:
  *
- *   insmod nfp.ko nfp_debug=<n>
+ *   insmod nshield_solo.ko nfp_debug=<n>
  *
  * where <n> = 1 through 4 inclusive
  */
-int nfp_debug = 1;
+int nshield_solo_debug = 1;
 
 /**
- * NFP module interface version parameter.
+ * NSHIELD_SOLO module interface version parameter.
  *
  * This value can be overridden when the module is loaded, for example:
  *
- *   insmod nfp.ko nfp_ifvers=<n>
+ *   insmod nshield_solo.ko nfp_ifvers=<n>
  *
  * where n = 0 allows any supported interface,
  *       n > 0 allows only interface versions <= n.
  * See nfdev-common.h for a list of supported interface versions.
  * Specific card models may not support all interface versions.
  */
-int nfp_ifvers = 0;
+int nshield_solo_ifvers = 0;
 
 NFP_MODULE_PREAMBLE
 NFP_MODULE_LICENSE
@@ -106,14 +106,14 @@ NFP_MODULE_LICENSE
 
 /**
  * @addtogroup fops
- * NFP character device file operations.
+ * NSHIELD_SOLO character device file operations.
  * @{
  */
 
 /**
- * Polls an NFP device.
+ * Polls an NSHIELD SOLO device.
  *
- * The kernel calls this function when a user tries to poll an NFP device. The function
+ * The kernel calls this function when a user tries to poll an NSHIELD SOLO device. The function
  * returns a bit mask which indicates if the device is immediately readable or writable.
  * A readable device will set (POLLIN | POLLRDNORM). A writable device will set (POLLOUT | POLLWRNORM).
  *
@@ -137,7 +137,7 @@ static unsigned int nfp_poll(struct file *file, poll_table *wait) {
 
     ndev = nfp_dev_list[ minor ];
     if (!ndev) {
-        nfp_log(NFP_DBG1, "nfp_poll: no NFP device associated with this file");
+        nfp_log(NFP_DBG1, "nfp_poll: no NSHIELD SOLO device associated with this file");
         return -ENODEV;
     }
 
@@ -187,9 +187,9 @@ void nfp_write_complete(nfp_dev *ndev, int ok) {
 #define CREATE_TRACE_POINTS
 
 /**
- * Writes to an NFP device.
+ * Writes to an NSHIELD SOLO device.
  *
- * Data in the user space buffer is written to the NFP device. Any
+ * Data in the user space buffer is written to the NSHIELD SOLO device. Any
  * previous data is overwritten. An error is returned if not all
  * bytes are written from the user space buffer.
  *
@@ -348,9 +348,9 @@ static void nfp_read_timeout(compat_timer_arg_t t) {
 }
 
 /**
- * Reads from an NFP device.
+ * Reads from an NSHIELD SOLO device.
  *
- * Data is read from the NFP device into the user space buffer. The read
+ * Data is read from the NSHIELD SOLO device into the user space buffer. The read
  * removes the data from the device. An error is returned is not all the
  * bytes are read from the user space buffer.
  *
@@ -509,7 +509,7 @@ void nfp_free_pci_pull( nfp_dev *ndev ) {
 /*
  * Sets device interface version.
  *
- * @param ndev an NFP device.
+ * @param ndev an NSHIELD SOLO device.
  * @param ifvers interface verison.
  * @returns interface version actually set.
  */
@@ -574,7 +574,7 @@ static int nfp_set_ifvers(nfp_dev *ndev, int ifvers) {
 }
 
 /**
- * Performs an NFP device IOCTL call.
+ * Performs an NSHIELD SOLO device IOCTL call.
  *
  * @param inode device inode pointer.
  * @param file  device file pointer.
@@ -831,7 +831,7 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
 #if LINUX_VERSION_CODE >= VERSION(2,6,36)
 
 /**
- * Performs an NFP device unlocked IOCTL call.
+ * Performs an NSHIELD SOLO device unlocked IOCTL call.
  *
  * @param file  device file pointer.
  * @param cmd   command id.
@@ -883,9 +883,9 @@ static irqreturn_t nfp_isr(int irq, void *context) {
 }
 
 /**
- * Opens an NFP device.
+ * Opens an NSHIELD SOLO device.
  *
- * The kernel calls this function when a user tries to open an NFP device.
+ * The kernel calls this function when a user tries to open an NSHIELD SOLO device.
  * It is an error to attempt to open an already opened device.
  *
  * @param inode device inode pointer.
@@ -955,9 +955,9 @@ static int nfp_open(struct inode *inode, struct file *file) {
 }
 
 /**
- * Releases an NFP device.
+ * Releases an NSHIELD SOLO device.
  *
- * The kernel calls this function when a user tries to close an NFP device.
+ * The kernel calls this function when a user tries to close an NSHIELD SOLO device.
  * It is an error to attempt to close an already closed device.
  *
  * @param node device inode pointer.
@@ -1027,7 +1027,7 @@ static release_t nfp_release(struct inode *node, struct file *file) {
 }
 
 /**
- * NFP character device file operations table.
+ * NSHIELD SOLO character device file operations table.
  */
 static struct file_operations nfp_fops = {
     owner: THIS_MODULE,
@@ -1045,7 +1045,7 @@ static struct file_operations nfp_fops = {
 
 /**
  * @addtogroup devmgr
- * NFP device management.
+ * NSHIELD SOLO device management.
  * @{
  */
 
@@ -1165,7 +1165,7 @@ static int nfp_setup( const nfpcmd_dev *cmddev, unsigned char bus, unsigned char
                 NULL, /* parent */
                 MKDEV(NFP_MAJOR, nfp_num_devices),
                 NULL, /* drvdata */
-                "nfp%d",
+                "nshield_solo%d",
                 nfp_num_devices);
   nfp_log( NFP_DBG2, "nfp_setup: nfp_num_devices= %d, ndev = %p.", nfp_num_devices, ndev );
   nfp_num_devices ++;
@@ -1292,7 +1292,7 @@ static void __devexit nfp_pci_remove(struct pci_dev *pcidev) {
 
     ndev = pci_get_drvdata(pcidev);
     if (ndev == NULL) {
-        nfp_log(NFP_DBG1,"nfp_pci_remove: no NFP device associated with this PCI device");
+        nfp_log(NFP_DBG1,"nfp_pci_remove: no NSHIELD SOLO device associated with this PCI device");
         return;
     }
 
@@ -1345,7 +1345,7 @@ MODULE_DEVICE_TABLE(pci, nfp_pci_tbl);
  * PCI driver operations.
  */
 static struct pci_driver nfp_pci_driver = {
-    .name = "nfp",
+    .name = "nshield_solo",
     .probe = nfp_pci_probe,
     .remove = __devexit_p(nfp_pci_remove),
     .id_table = nfp_pci_tbl
@@ -1361,14 +1361,14 @@ static int nfp_init( void ) {
   nfp_log( NFP_DBG1, "nfp_init: entered" );
 
   if( register_chrdev( NFP_MAJOR, NFP_DRVNAME, &nfp_fops ) ) {
-    nfp_log( NFP_DBG1, "unable to get major for nfp device." );
+    nfp_log( NFP_DBG1, "unable to get major for nshield_solo device." );
     return -EIO;
   }
 
   for( index = 0; index < NFP_MAXDEV; index++ )
     nfp_dev_list[index] = NULL;
 
-  nfp_class = class_create(THIS_MODULE, "nfp");
+  nfp_class = class_create(THIS_MODULE, "nshield_solo");
   if (IS_ERR(nfp_class))
   {
     nfp_log( NFP_DBG1,
@@ -1384,12 +1384,12 @@ static int nfp_init( void ) {
 /** @} */
 
 /**
- * Initializes this NFP kernel module.
+ * Initializes this NSHIELD SOLO kernel module.
  */
 static int __init nfp_module_init(void) {
     int err;
 
-    nfp_log(NFP_DBG1, "nfp_module_init: inserting nfp module");
+    nfp_log(NFP_DBG1, "nfp_module_init: inserting nshield_solo module");
 
     err = nfp_init();
 
@@ -1397,11 +1397,11 @@ static int __init nfp_module_init(void) {
 }
 
 /**
- * Exits this NFP kernel module.
+ * Exits this NSHIELD SOLO kernel module.
  */
 static void __exit nfp_module_exit(void) {
 
-    nfp_log(NFP_DBG3,"nfp_module_exit: removing nfp module");
+    nfp_log(NFP_DBG3,"nfp_module_exit: removing nshield_solo module");
 
     /* unregister pci driver */
 
@@ -1412,7 +1412,7 @@ static void __exit nfp_module_exit(void) {
     class_destroy(nfp_class);
   
     unregister_chrdev( NFP_MAJOR, NFP_DRVNAME );
-    nfp_log(NFP_DBG1,"nfp_module_exit: removed nfp module");
+    nfp_log(NFP_DBG1,"nfp_module_exit: removed nshield_solo module");
 }
 
 module_init(nfp_module_init);
