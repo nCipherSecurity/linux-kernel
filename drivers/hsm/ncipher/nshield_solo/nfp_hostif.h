@@ -73,7 +73,6 @@ void nfp_write_complete( struct nfp_dev *pdev, int ok);
 #define NFP_DMA_ADDRESS_OFFSET (8)
 
 #define NFP_DRVNAME "nCipher nFast PCI driver"
-
-#define NFP_CLSNAME "nfp"
+#define NFP_CLSNAME "nshield_solo"
 
 #endif
