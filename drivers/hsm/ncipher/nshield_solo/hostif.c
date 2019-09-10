@@ -83,7 +83,7 @@ static struct class *nfp_class;
  *
  * where <n> = 1 through 4 inclusive
  */
-int nshield_solo_debug = 1;
+int nfp_debug = 1;
 
 /**
  * NSHIELD_SOLO module interface version parameter.
@@ -97,7 +97,7 @@ int nshield_solo_debug = 1;
  * See nfdev-common.h for a list of supported interface versions.
  * Specific card models may not support all interface versions.
  */
-int nshield_solo_ifvers = 0;
+int nfp_ifvers = 0;
 
 NFP_MODULE_PREAMBLE
 NFP_MODULE_LICENSE
