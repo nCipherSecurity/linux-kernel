@@ -1,22 +1,22 @@
 /*
-
-nfp.h: nCipher PCI HSM Linux OS interface declarations
-
+ *
+ * nfp.h: nCipher PCI HSM Linux OS interface declarations
+ *
  * (c) nCipher Security Limited 2019
-
-history
-
-09/10/2001 jsh  Original
-
-*/
+ *
+ * history
+ *
+ * 09/10/2001 jsh  Original
+ *
+ */
 
 #ifndef NFP_COMMON_H
 #define NFP_COMMON_H
 
 #include <linux/types.h>
 
-typedef u_int32_t UINT32;    
-typedef u_int8_t BYTE;      
+typedef u_int32_t UINT32;
+typedef u_int8_t BYTE;
 
 #define DEFINE_NFPCI_PACKED_STRUCTS
 #include "nfpci.h"
@@ -30,10 +30,10 @@ typedef int oserr_t;
 
 #define FROM_LE32_CONFIG(x) (*x)
 
-#define TO_LE16_MEM(x,y) (*x=y)
+#define TO_LE16_MEM(x, y) (*x = y)
 #define FROM_LE16_MEM(x) (*x)
 
-#define TO_LE32_MEM(x,y) (*x=y)
+#define TO_LE32_MEM(x, y) (*x = y)
 #define FROM_LE32_MEM(x) (*x)
 
 #endif

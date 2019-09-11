@@ -15,16 +15,16 @@
  */
 
 /*
-
-nfp_osif.h: nCipher PCI HSM OS interface declarations
-
+ *
+ * nfp_osif.h: nCipher PCI HSM OS interface declarations
+ *
  * (c) nCipher Security Limited 2019
-
-history
-
-10/10/2001 jsh  Original
-
-*/
+ *
+ * history
+ *
+ * 10/10/2001 jsh  Original
+ *
+ */
 
 #ifndef NFP_OSIF_H
 #define NFP_OSIF_H
@@ -52,31 +52,37 @@ typedef volatile unsigned char reg8;
 
 /* timeouts ------------------------------------------------------ */
 
-extern void nfp_sleep( int ms );
+extern void nfp_sleep(int ms);
 
 /* config space access ------------------------------------------------ */
 
 /* return Little Endian 32 bit config register */
-extern nfp_err nfp_config_inl( nfp_cdev *pdev, int offset, unsigned int *res );
+extern nfp_err nfp_config_inl(nfp_cdev *pdev, int offset, unsigned int *res);
 
 /* io space access ------------------------------------------------ */
 
-extern unsigned int nfp_inl( nfp_cdev *pdev, int bar, int offset );
-extern unsigned short nfp_inw( nfp_cdev *pdev, int bar, int offset );
-extern void nfp_outl( nfp_cdev *pdev, int bar, int offset, unsigned int data );
-extern void nfp_outw( nfp_cdev *pdev, int bar, int offset, unsigned short data );
+extern unsigned int nfp_inl(nfp_cdev *pdev, int bar, int offset);
+extern unsigned short nfp_inw(nfp_cdev *pdev, int bar, int offset);
+extern void nfp_outl(nfp_cdev *pdev, int bar, int offset, unsigned int data);
+extern void nfp_outw(nfp_cdev *pdev, int bar, int offset, unsigned short data);
 
 /* user and device memory space access ---------------------------- */
 
-/* NB these 2 functions are not guarenteed to be re-entrant for a given device */
-extern nfp_err nfp_copy_from_user_to_dev( nfp_cdev *cdev, int bar, int offset, const char *ubuf, int len);
-extern nfp_err nfp_copy_to_user_from_dev( nfp_cdev *cdev, int bar, int offset, char *ubuf, int len);
+/*
+ * NB these 2 functions are not guarenteed to be re-entrant for a given device
+ */
+extern nfp_err nfp_copy_from_user_to_dev(nfp_cdev *cdev, int bar, int offset,
+					 const char *ubuf, int len);
+extern nfp_err nfp_copy_to_user_from_dev(nfp_cdev *cdev, int bar, int offset,
+					 char *ubuf, int len);
 
-extern nfp_err nfp_copy_from_user( char *kbuf, const char *ubuf, int len );
-extern nfp_err nfp_copy_to_user( char *ubuf, const char *kbuf, int len );
+extern nfp_err nfp_copy_from_user(char *kbuf, const char *ubuf, int len);
+extern nfp_err nfp_copy_to_user(char *ubuf, const char *kbuf, int len);
 
-extern nfp_err nfp_copy_from_dev( nfp_cdev *cdev, int bar, int offset, char *kbuf, int len );
-extern nfp_err nfp_copy_to_dev( nfp_cdev *cdev, int bar, int offset, const char *kbuf, int len);
+extern nfp_err nfp_copy_from_dev(nfp_cdev *cdev, int bar, int offset,
+				 char *kbuf, int len);
+extern nfp_err nfp_copy_to_dev(nfp_cdev *cdev, int bar, int offset,
+			       const char *kbuf, int len);
 
 /* debug ------------------------------------------------------------ */
 
@@ -87,9 +93,9 @@ extern nfp_err nfp_copy_to_dev( nfp_cdev *cdev, int bar, int offset, const char 
 #define NFP_DBG4	4
 
 #ifdef STRANGE_VARARGS
-extern void nfp_log();
+extern void nfp_log(void);
 #else
-extern void nfp_log( int severity, const char *format, ...);
+extern void nfp_log(int severity, const char *format, ...);
 #endif
 
 extern int nfp_debug;

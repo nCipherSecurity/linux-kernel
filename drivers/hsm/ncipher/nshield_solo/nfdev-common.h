@@ -3,17 +3,18 @@
  * (C) nCipher Security Limited 2019
  *
  * The copyright in this software is the property of nCipher Security Limited.
- * This software may not be used, sold, licensed, disclosed, transferred, copied,
- * modified or reproduced in whole or in part or in any manner or form other than
- * in accordance with the licence agreement provided with this software or
- * otherwise without the prior written consent of nCipher Security Limited.
+ * This software may not be used, sold, licensed, disclosed, transferred,
+ * copied, modified or reproduced in whole or in part or in any manner or form
+ * other than in accordance with the licence agreement provided with this
+ * software or otherwise without the prior written consent of
+ * nCipher Security Limited.
  *
  * \brief nFast device driver (not generic SCSI) ioctl struct definition file
  *  include NFDEV-$(system) for ioctl number definitions
  *
  *  1998.07.13	jsh	Started
  *
- * 
+ *
  */
 
 #ifndef NFDEV_COMMON_H
@@ -50,43 +51,43 @@ typedef unsigned int uint32_t;
  * Result of the ENQUIRY ioctl.
  */
 typedef struct nfdev_enquiry_str {
-  uint32_t  busno; /**< Which bus is the PCI device on. */
-  unsigned char slotno; /**< Which slot is the PCI device in. */
-  unsigned char reserved[3]; /**< for consistant struct alignment */
+	uint32_t busno; /**< Which bus is the PCI device on. */
+	unsigned char slotno; /**< Which slot is the PCI device in. */
+	unsigned char reserved[3]; /**< for consistant struct alignment */
 } nfdev_enquiry_str;
 
 /**
  * Result of the STATS ioctl.
  */
 typedef struct nfdev_stats_str {
-  uint32_t  isr; /**< Count interrupts. */
-  uint32_t  isr_read; /**< Count read interrupts. */
-  uint32_t  isr_write; /**< Count write interrupts. */
-  uint32_t  write_fail; /**< Count write failures. */
-  uint32_t  write_block; /**< Count blocks written. */
-  uint32_t  write_byte; /**< Count bytes written. */
-  uint32_t  read_fail; /**< Count read failures. */
-  uint32_t  read_block; /**< Count blocks read. */
-  uint32_t  read_byte; /**< Count bytes read. */
-  uint32_t  ensure_fail; /**< Count read request failures. */
-  uint32_t  ensure; /**< Count read requests. */
+	uint32_t isr; /**< Count interrupts. */
+	uint32_t isr_read; /**< Count read interrupts. */
+	uint32_t isr_write; /**< Count write interrupts. */
+	uint32_t write_fail; /**< Count write failures. */
+	uint32_t write_block; /**< Count blocks written. */
+	uint32_t write_byte; /**< Count bytes written. */
+	uint32_t read_fail; /**< Count read failures. */
+	uint32_t read_block; /**< Count blocks read. */
+	uint32_t read_byte; /**< Count bytes read. */
+	uint32_t ensure_fail; /**< Count read request failures. */
+	uint32_t ensure; /**< Count read requests. */
 } nfdev_stats_str;
 
 /**
  * Input to the CONTROL ioctl.
  */
 typedef struct nfdev_control_str {
-  uint32_t  control; /**< Control flags. */
+	uint32_t control; /**< Control flags. */
 } nfdev_control_str;
 
 /** Control bit indicating host supports MOI control */
-#define NFDEV_CONTROL_HOST_MOI 0x0001
+#define NFDEV_CONTROL_HOST_MOI         0x0001
 
 /** Index of control bits indicating desired mode
  *
  * Desired mode follows the M_ModuleMode enumeration.
  */
-#define NFDEV_CONTROL_MODE_SHIFT 1
+#define NFDEV_CONTROL_MODE_SHIFT       1
 
 /** Detect a backwards-compatible control value
  *
@@ -99,15 +100,15 @@ typedef struct nfdev_control_str {
  * Result of the STATUS ioctl.
  */
 typedef struct nfdev_status_str {
-  uint32_t  status; /**< Status flags. */
-  char      error[8]; /**< Error string. */
+	uint32_t status; /**< Status flags. */
+	char error[8]; /**< Error string. */
 } nfdev_status_str;
 
 /** Monitor firmware supports MOI control and error reporting */
-#define NFDEV_STATUS_MONITOR_MOI 0x0001
+#define NFDEV_STATUS_MONITOR_MOI       0x0001
 
 /** Application firmware supports MOI control and error reporting */
-#define NFDEV_STATUS_APPLICATION_MOI 0x0002
+#define NFDEV_STATUS_APPLICATION_MOI   0x0002
 
 /** Application firmware running and supports error reporting */
 #define NFDEV_STATUS_APPLICATION_RUNNING 0x0004
@@ -116,15 +117,15 @@ typedef struct nfdev_status_str {
  *
  * Consult error[] for additional information.
  */
-#define NFDEV_STATUS_FAILED 0x0008
+#define NFDEV_STATUS_FAILED            0x0008
 
 /** Standard PCI interface. */
-#define NFDEV_IF_STANDARD	0x01
+#define NFDEV_IF_STANDARD	       0x01
 
 /** PCI interface with read replies pushed from device
  *  via DMA.
  */
-#define NFDEV_IF_PCI_PUSH	0x02
+#define NFDEV_IF_PCI_PUSH	       0x02
 
 /** PCI interface with read replies pushed from device
  *  and write requests pulled from host via DMA.
@@ -132,7 +133,7 @@ typedef struct nfdev_status_str {
 #define NFDEV_IF_PCI_PULL 0x03
 
 /** Maximum PCI interface. */
-#define NFDEV_IF_MAX_VERS      NFDEV_IF_PCI_PUSH_PULL
+#define NFDEV_IF_MAX_VERS              NFDEV_IF_PCI_PUSH_PULL
 
 /* platform independant base ioctl numbers */
 

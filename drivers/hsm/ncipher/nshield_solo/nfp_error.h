@@ -15,16 +15,16 @@
  */
 
 /*
-
-nfp_error.h: nCipher PCI HSM error handling
-
+ *
+ * nfp_error.h: nCipher PCI HSM error handling
+ *
  * (c) nCipher Security Limited 2019
-
-history
-
-05/12/2001 jsh  Original
-
-*/
+ *
+ * history
+ *
+ * 05/12/2001 jsh  Original
+ *
+ */
 
 #ifndef NFP_ERROR_H
 #define NFP_ERROR_H
@@ -47,16 +47,27 @@ history
 
 typedef int nfp_err;
 
-extern oserr_t nfp_oserr( nfp_err nerr );
-extern nfp_err nfp_error( oserr_t oerr );
+extern oserr_t nfp_oserr(nfp_err nerr);
+extern nfp_err nfp_error(oserr_t oerr);
 
-#define nfr( x) \
-  return nfp_error((x))
+#define nfr(x) return nfp_error((x))
 
-#define nfer(x, fn, msg) \
-  { oserr_t err=(x); if(err) { nfp_log( NFP_DBG1, #fn ": " msg); return nfp_error(err); } }
+#define nfer(x, fn, msg)                                                       \
+	{                                                                      \
+		oserr_t err = (x);                                             \
+		if (err) {                                                     \
+			nfp_log(NFP_DBG1, #fn ": " msg);                       \
+			return nfp_error(err);                                 \
+		}                                                              \
+	}
 
-#define er(x, fn, msg ) \
-{ nfp_err err=(x); if(err) { nfp_log( NFP_DBG1, #fn ": " msg); return err; } }
+#define er(x, fn, msg)                                                         \
+	{                                                                      \
+		nfp_err err = (x);                                             \
+		if (err) {                                                     \
+			nfp_log(NFP_DBG1, #fn ": " msg);                       \
+			return err;                                            \
+		}                                                              \
+	}
 
 #endif

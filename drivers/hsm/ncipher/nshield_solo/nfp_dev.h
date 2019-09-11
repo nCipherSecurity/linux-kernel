@@ -15,16 +15,16 @@
  */
 
 /*
-
-nfp_dev.h: nCipher PCI HSM linux device declarations
-
+ *
+ * nfp_dev.h: nCipher PCI HSM linux device declarations
+ *
  * (c) nCipher Security Limited 2019
-
-history
-
-09/10/2001 jsh  Original
-
-*/
+ *
+ * history
+ *
+ * 09/10/2001 jsh  Original
+ *
+ */
 
 #ifndef NFP_DEV_H
 #define NFP_DEV_H
@@ -35,47 +35,44 @@ history
 #include "nfp_osif.h"
 
 /* Interpretation of the bits of nfp_dev.rd_outstanding */
-#define WAIT_BIT 0     /* waiting for data */
-#define CMPLT_BIT 1    /* completing a read (got data or timing out) */
+#define WAIT_BIT 0 /* waiting for data */
+#define CMPLT_BIT 1 /* completing a read (got data or timing out) */
 
 typedef struct nfp_dev {
-    struct list_head list;
+	struct list_head list;
 
-    nfpcmd_dev const *cmddev;
+	nfpcmd_dev const *cmddev;
 
-    nfp_cdev common;
+	nfp_cdev common;
 
-    int iosize[6];
-  
-    unsigned int irq;
-  
-    unsigned char *read_buf;
-    dma_addr_t     read_dma;
-  
-    unsigned char *write_buf;
-    dma_addr_t     write_dma;
- 
-    struct pci_dev *pcidev;
-  
-    int busy;
-    int ifvers;
-    struct timer_list rd_timer;
+	int iosize[6];
 
+	unsigned int irq;
 
-    nfp_wait_queue_head_t rd_queue;
-    long unsigned rd_ready;
-    long unsigned rd_outstanding;
-    int rd_ok;
+	unsigned char *read_buf;
+	dma_addr_t read_dma;
 
+	unsigned char *write_buf;
+	dma_addr_t write_dma;
 
-    nfp_wait_queue_head_t wr_queue;
-    long unsigned wr_ready;
-    long unsigned wr_outstanding;
-    int wr_ok;
-  
-    spinlock_t spinlock;
-  
-  
+	struct pci_dev *pcidev;
+
+	int busy;
+	int ifvers;
+	struct timer_list rd_timer;
+
+	nfp_wait_queue_head_t rd_queue;
+	long unsigned rd_ready;
+	long unsigned rd_outstanding;
+	int rd_ok;
+
+	nfp_wait_queue_head_t wr_queue;
+	long unsigned wr_ready;
+	long unsigned wr_outstanding;
+	int wr_ok;
+
+	spinlock_t spinlock;
+
 } nfp_dev;
 
 #endif

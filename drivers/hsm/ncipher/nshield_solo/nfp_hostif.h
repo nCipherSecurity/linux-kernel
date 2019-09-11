@@ -15,16 +15,16 @@
  */
 
 /*
-
-nfp_hostif.h: nCipher PCI HSM host interface declarations
-
+ *
+ * nfp_hostif.h: nCipher PCI HSM host interface declarations
+ *
  * (c) nCipher Security Limited 2019
-
-history
-
-10/10/2001 jsh  Original
-
-*/
+ *
+ * history
+ *
+ * 10/10/2001 jsh  Original
+ *
+ */
 
 #ifndef NFP_HOSTIF_H
 #define NFP_HOSTIF_H
@@ -39,29 +39,29 @@ struct nfp_dev;
 /* common device structure */
 
 typedef struct nfp_cdev {
-  unsigned char *bar[NFP_BARSIZES_COUNT];
-  void *extra[NFP_BARSIZES_COUNT];
+	unsigned char *bar[NFP_BARSIZES_COUNT];
+	void *extra[NFP_BARSIZES_COUNT];
 
-  int busno;
-  int slotno;
+	int busno;
+	int slotno;
 
-  void *cmdctx;
+	void *cmdctx;
 
-  char *iobuf;
+	char *iobuf;
 
-  struct nfp_dev* dev;
+	struct nfp_dev *dev;
 
-  struct nfdev_stats_str stats;
-  int active_bar;
-  int created;
-  int conn_status;
-  int detection_type; 
+	struct nfdev_stats_str stats;
+	int active_bar;
+	int created;
+	int conn_status;
+	int detection_type;
 } nfp_cdev;
 
 /* callbacks from command drivers -------------------------------------- */
 
-void nfp_read_complete(  struct nfp_dev *pdev, int ok);
-void nfp_write_complete( struct nfp_dev *pdev, int ok);
+void nfp_read_complete(struct nfp_dev *pdev, int ok);
+void nfp_write_complete(struct nfp_dev *pdev, int ok);
 
 #define NFP_READ_MAX (8 * 1024)
 #define NFP_WRITE_MAX (8 * 1024)
