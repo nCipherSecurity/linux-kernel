@@ -472,8 +472,9 @@ static nfp_err fsl_isr(void *ctx, int *handled)
 				 NFAST_INT_DEVICE_CLR);
 			cdev->stats.isr_write++;
 			nfp_write_complete(cdev->dev,
-				doorbell_wr & NFAST_INT_DEVICE_WRITE_OK ? 1 :
-				0);
+					   doorbell_wr &
+					   NFAST_INT_DEVICE_WRITE_OK ? 1 :
+					   0);
 			nfp_log(NFP_DBG3,
 				"%s: acknowledging write interrupt: ok = %d",
 				__func__,
@@ -498,7 +499,9 @@ static nfp_err fsl_isr(void *ctx, int *handled)
 				 NFAST_INT_DEVICE_CLR);
 			cdev->stats.isr_read++;
 			nfp_read_complete(cdev->dev,
-				doorbell_rd & NFAST_INT_DEVICE_READ_OK ? 1 : 0);
+					  doorbell_rd &
+					  NFAST_INT_DEVICE_READ_OK ? 1
+					  : 0);
 			nfp_log(NFP_DBG3,
 				"%s: acknowledging read interrupt: ok = %d",
 				__func__,
@@ -528,9 +531,10 @@ static nfp_err fsl_isr(void *ctx, int *handled)
 				 FSL_OFFSET_DOORBELL_CS_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			fsl_check_complete(cdev,
-				doorbell_cs & NFAST_INT_DEVICE_CHECK_OK ?
-						NFP_SUCCESS :
-						NFP_ESTARTING);
+					   doorbell_cs &
+					   NFAST_INT_DEVICE_CHECK_OK ?
+					   NFP_SUCCESS :
+					   NFP_ESTARTING);
 			nfp_log(NFP_DBG3,
 				"%s: acknowledging check interrupt: status:0x%x",
 				__func__,
@@ -879,8 +883,9 @@ static nfp_err fsl_read(char *block, int len, void *ctx, int *rcnt)
 
 	/* receive data */
 
-	ne = nfp_copy_to_user_from_dev(cdev, cdev->active_bar,
-			NFPCI_JOBS_RD_DATA, block, cnt);
+	ne = nfp_copy_to_user_from_dev(cdev,
+				       cdev->active_bar,
+				       NFPCI_JOBS_RD_DATA, block, cnt);
 	if (ne != NFP_SUCCESS) {
 		cdev->stats.read_fail++;
 		nfp_log(NFP_DBG1, "%s: error: nfp_copy_to_user failed.",
@@ -936,8 +941,10 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 
 		/* send write request */
 
-		ne = nfp_copy_from_user_to_dev(cdev, cdev->active_bar,
-						NFPCI_JOBS_WR_DATA, block, len);
+		ne = nfp_copy_from_user_to_dev(cdev,
+					       cdev->active_bar,
+					       NFPCI_JOBS_WR_DATA,
+					       block, len);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1,
@@ -996,8 +1003,9 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 					 12);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
-			nfp_log(NFP_DBG1, "%s: nfp_copy_to_dev failed",
-					 __func__);
+			nfp_log(NFP_DBG1,
+				"%s: nfp_copy_to_dev failed",
+				__func__);
 			return ne;
 		}
 
