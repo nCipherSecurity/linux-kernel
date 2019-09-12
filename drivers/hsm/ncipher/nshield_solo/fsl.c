@@ -937,7 +937,7 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 		/* send write request */
 
 		ne = nfp_copy_from_user_to_dev(cdev, cdev->active_bar,
-				     NFPCI_JOBS_WR_DATA, block, len);
+						NFPCI_JOBS_WR_DATA, block, len);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1,
@@ -949,7 +949,8 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 		TO_LE32_MEM(&hdr[0], NFPCI_JOB_CONTROL);
 		TO_LE32_MEM(&hdr[1], len);
 		ne = nfp_copy_to_dev(cdev, cdev->active_bar,
-				NFPCI_JOBS_WR_CONTROL, (char const *)hdr, 8);
+				     NFPCI_JOBS_WR_CONTROL,
+					 (char const *)hdr, 8);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1,
@@ -960,7 +961,7 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 		/* confirm write request */
 
 		ne = nfp_copy_from_dev(cdev, cdev->active_bar,
-				NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
+				       NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1,
@@ -991,18 +992,19 @@ static nfp_err fsl_write(unsigned int addr, char const *block, int len,
 		TO_LE32_MEM(&hdr[1], len);
 		TO_LE32_MEM(&hdr[2], addr);
 		ne = nfp_copy_to_dev(cdev, cdev->active_bar,
-				NFPCI_JOBS_WR_CONTROL, (char const *)hdr, 12);
+				     NFPCI_JOBS_WR_CONTROL, (char const *)hdr,
+					 12);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1, "%s: nfp_copy_to_dev failed",
-					__func__);
+					 __func__);
 			return ne;
 		}
 
 		/* confirm request */
 
 		ne = nfp_copy_from_dev(cdev, cdev->active_bar,
-				NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
+				       NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
 		if (ne != NFP_SUCCESS) {
 			cdev->stats.write_fail++;
 			nfp_log(NFP_DBG1,
