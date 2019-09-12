@@ -1,36 +1,4 @@
-/*************************************************************************
- *
- * Project:      NGSolo
- *
- *-------------------------------------------------------------------------
- *
- *-------------------------------------------------------------------------
- *
- * Module Description:
- *
- *    This file declares FSL device configurations.
- *
- *-------------------------------------------------------------------------
- *
- * Notes:
- *
- *    This file is duplicated in the host and card repositories. It is
- *    essential that both copies match!
- *
- *-------------------------------------------------------------------------
- *
- *   This document contains proprietary trade secrets of nCipher Security;
- *   its receipt or possession does not convey any right to reproduce,
- *   disclose its contents, or to manufacture, use, or sell anything that
- *   it may describe. Reproduction, disclosure, or use without specific
- *   authorization of nCipher Security is strictly forbidden.
- *
- *              Copyright (C) nCipher Security Limited 2019
- *                       ALL RIGHTS RESERVED
- *     Rights Reserved Under the Copyright Laws of the United States.
- *
- *************************************************************************/
-
+/* SPDX-License-Identifier: GPL-2.0+ */
 /** @file
  *
  * Declares FSL device configurations.
