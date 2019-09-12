@@ -26,10 +26,11 @@
 #define NFDEV_IOCTL_TYPE 0x10
 
 #define NFDEV_IOCTL_CHUPDATE                                                   \
-    _IO(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_CHUPDATE)
+	_IO(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_CHUPDATE)
 
 #define NFDEV_IOCTL_ENQUIRY                                                    \
-	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_ENQUIRY, nfdev_enquiry_str)
+	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_ENQUIRY,                        \
+	     struct nfdev_enquiry_str)
 
 #define NFDEV_IOCTL_ENSUREREADING                                              \
 	_IOW(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_ENSUREREADING, int)
@@ -44,12 +45,13 @@
 	_IOW(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_PCI_IFVERS, int)
 
 #define NFDEV_IOCTL_STATS                                                      \
-	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_STATS, nfdev_stats_str)
+	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_STATS, struct nfdev_stats_str)
 
 #define NFDEV_IOCTL_CONTROL                                                    \
-	_IOW(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_CONTROL, const nfdev_control_str)
+	_IOW(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_CONTROL,                        \
+	     const struct nfdev_control_str)
 
 #define NFDEV_IOCTL_STATUS                                                     \
-	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_STATUS, nfdev_status_str)
+	_IOR(NFDEV_IOCTL_TYPE, NFDEV_IOCTL_NUM_STATUS, struct nfdev_status_str)
 
 #endif /* NFDEV_LINUX_H */

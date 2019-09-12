@@ -49,17 +49,17 @@
 #define MEMBAR1					0
 #define MEMBAR2					2
 
-#define MEMBAR1_SIZE                                                           \
-	4096 /* lower 4k of BAR0 map the 21555 CSRs (doorbell IRQs etc) */
+/* lower 4k of BAR0 map the 21555 CSRs (doorbell IRQs etc) */
+#define MEMBAR1_SIZE 4096
 
 #define CSR_BAR MEMBAR1
-#define BAR_SIZES                                                              \
-	{                                                                      \
-		MEMBAR1_SIZE, 0,                                               \
-			NFPCI_RAM_MINSIZE_JOBS |                               \
-				PCI_BASE_ADDRESS_SPACE_PREFETCHABLE,           \
-			0, 0, 0                                                \
-	}
+#define BAR_SIZES {MEMBAR1_SIZE,                                               \
+		   0,                                                          \
+		   NFPCI_RAM_MINSIZE_JOBS |                                    \
+		   PCI_BASE_ADDRESS_SPACE_PREFETCHABLE,                        \
+		   0,                                                          \
+		   0,                                                          \
+		   0}
 
 extern nfp_err i21555_debug(int cmd, void *ctx);
 

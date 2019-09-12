@@ -46,43 +46,39 @@
 
 /* general typedefs ----------------------------------------------- */
 
-typedef volatile unsigned int reg32;
-typedef volatile unsigned short reg16;
-typedef volatile unsigned char reg8;
-
 /* timeouts ------------------------------------------------------ */
 
-extern void nfp_sleep(int ms);
+void nfp_sleep(int ms);
 
 /* config space access ------------------------------------------------ */
 
 /* return Little Endian 32 bit config register */
-extern nfp_err nfp_config_inl(nfp_cdev *pdev, int offset, unsigned int *res);
+nfp_err nfp_config_inl(nfp_cdev *pdev, int offset, unsigned int *res);
 
 /* io space access ------------------------------------------------ */
 
-extern unsigned int nfp_inl(nfp_cdev *pdev, int bar, int offset);
-extern unsigned short nfp_inw(nfp_cdev *pdev, int bar, int offset);
-extern void nfp_outl(nfp_cdev *pdev, int bar, int offset, unsigned int data);
-extern void nfp_outw(nfp_cdev *pdev, int bar, int offset, unsigned short data);
+unsigned int nfp_inl(nfp_cdev *pdev, int bar, int offset);
+unsigned short nfp_inw(nfp_cdev *pdev, int bar, int offset);
+void nfp_outl(nfp_cdev *pdev, int bar, int offset, unsigned int data);
+void nfp_outw(nfp_cdev *pdev, int bar, int offset, unsigned short data);
 
 /* user and device memory space access ---------------------------- */
 
 /*
- * NB these 2 functions are not guarenteed to be re-entrant for a given device
+ * NB these 2 functions are not guaranteed to be re-entrant for a given device
  */
-extern nfp_err nfp_copy_from_user_to_dev(nfp_cdev *cdev, int bar, int offset,
-					 const char *ubuf, int len);
-extern nfp_err nfp_copy_to_user_from_dev(nfp_cdev *cdev, int bar, int offset,
-					 char *ubuf, int len);
+nfp_err nfp_copy_from_user_to_dev(nfp_cdev *cdev, int bar, int offset,
+				  const char *ubuf, int len);
+nfp_err nfp_copy_to_user_from_dev(nfp_cdev *cdev, int bar, int offset,
+				  char *ubuf, int len);
 
-extern nfp_err nfp_copy_from_user(char *kbuf, const char *ubuf, int len);
-extern nfp_err nfp_copy_to_user(char *ubuf, const char *kbuf, int len);
+nfp_err nfp_copy_from_user(char *kbuf, const char *ubuf, int len);
+nfp_err nfp_copy_to_user(char *ubuf, const char *kbuf, int len);
 
-extern nfp_err nfp_copy_from_dev(nfp_cdev *cdev, int bar, int offset,
-				 char *kbuf, int len);
-extern nfp_err nfp_copy_to_dev(nfp_cdev *cdev, int bar, int offset,
-			       const char *kbuf, int len);
+nfp_err nfp_copy_from_dev(nfp_cdev *cdev, int bar, int offset,
+			  char *kbuf, int len);
+nfp_err nfp_copy_to_dev(nfp_cdev *cdev, int bar, int offset,
+			const char *kbuf, int len);
 
 /* debug ------------------------------------------------------------ */
 
@@ -93,9 +89,9 @@ extern nfp_err nfp_copy_to_dev(nfp_cdev *cdev, int bar, int offset,
 #define NFP_DBG4	4
 
 #ifdef STRANGE_VARARGS
-extern void nfp_log(void);
+void nfp_log(void);
 #else
-extern void nfp_log(int severity, const char *format, ...);
+void nfp_log(int severity, const char *format, ...);
 #endif
 
 extern int nfp_debug;

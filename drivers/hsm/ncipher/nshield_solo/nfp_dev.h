@@ -35,13 +35,13 @@
 #include "nfp_osif.h"
 
 /* Interpretation of the bits of nfp_dev.rd_outstanding */
-#define WAIT_BIT 0 /* waiting for data */
+#define WAIT_BIT  0 /* waiting for data */
 #define CMPLT_BIT 1 /* completing a read (got data or timing out) */
 
-typedef struct nfp_dev {
+struct nfp_dev {
 	struct list_head list;
 
-	nfpcmd_dev const *cmddev;
+	struct nfpcmd_dev const *cmddev;
 
 	nfp_cdev common;
 
@@ -61,18 +61,18 @@ typedef struct nfp_dev {
 	int ifvers;
 	struct timer_list rd_timer;
 
-	nfp_wait_queue_head_t rd_queue;
-	long unsigned rd_ready;
-	long unsigned rd_outstanding;
+	wait_queue_head_t rd_queue;
+	unsigned long rd_ready;
+	unsigned long rd_outstanding;
 	int rd_ok;
 
-	nfp_wait_queue_head_t wr_queue;
-	long unsigned wr_ready;
-	long unsigned wr_outstanding;
+	wait_queue_head_t wr_queue;
+	unsigned long wr_ready;
+	unsigned long wr_outstanding;
 	int wr_ok;
 
 	spinlock_t spinlock;
 
-} nfp_dev;
+};
 
 #endif

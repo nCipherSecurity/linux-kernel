@@ -41,9 +41,9 @@
 void nfp_sleep(int ms)
 {
 	DEFINE_WAIT(wait);
-	nfp_wait_queue_head_t q;
+	wait_queue_head_t q;
 
-	nfp_init_waitqueue_head(&q);
+	init_waitqueue_head(&q);
 
 	prepare_to_wait(&q, &wait, TASK_UNINTERRUPTIBLE);
 	schedule_timeout((ms * HZ) / 1000);
@@ -68,7 +68,7 @@ nfp_err nfp_copy_from_user(char *kbuf, const char *ubuf, int len)
 	task_state = current->state;
 	COPY_FROM_USER(kbuf, ubuf, len, oserr);
 	current->state = task_state;
-	nfr(oserr);
+	return nfp_error(oserr);
 }
 
 nfp_err nfp_copy_to_user(char *ubuf, const char *kbuf, int len)
@@ -79,7 +79,7 @@ nfp_err nfp_copy_to_user(char *ubuf, const char *kbuf, int len)
 	task_state = current->state;
 	COPY_TO_USER(ubuf, kbuf, len, oserr);
 	current->state = task_state;
-	nfr(oserr);
+	return nfp_error(oserr);
 }
 
 nfp_err nfp_copy_from_user_to_dev(nfp_cdev *cdev, int bar, int offset,
@@ -91,7 +91,7 @@ nfp_err nfp_copy_from_user_to_dev(nfp_cdev *cdev, int bar, int offset,
 	task_state = current->state;
 	COPY_FROM_USER(cdev->bar[bar] + offset, ubuf, len, oserr);
 	current->state = task_state;
-	nfr(oserr);
+	return nfp_error(oserr);
 }
 
 nfp_err nfp_copy_to_user_from_dev(nfp_cdev *cdev, int bar, int offset,
@@ -103,7 +103,7 @@ nfp_err nfp_copy_to_user_from_dev(nfp_cdev *cdev, int bar, int offset,
 	task_state = current->state;
 	COPY_TO_USER(ubuf, cdev->bar[bar] + offset, len, oserr);
 	current->state = task_state;
-	nfr(oserr);
+	return nfp_error(oserr);
 }
 
 nfp_err nfp_copy_from_dev(nfp_cdev *cdev, int bar, int offset, char *kbuf,
@@ -121,30 +121,31 @@ nfp_err nfp_copy_to_dev(nfp_cdev *cdev, int bar, int offset, const char *kbuf,
 }
 
 /* pci fixed length accessors. The below functions are used predominantly
- * to access CSR registers in pci memory space. */
+ * to access CSR registers in pci memory space.
+ */
 unsigned int nfp_inl(nfp_cdev *pdev, int bar, int offset)
 {
-	nfp_log(NFP_DBG3, "nfp_inl: addr %p", pdev->bar[bar] + offset);
+	nfp_log(NFP_DBG3, "%s: addr %p", __func__, pdev->bar[bar] + offset);
 	return ioread32(pdev->bar[bar] + offset);
 }
 
 unsigned short nfp_inw(nfp_cdev *pdev, int bar, int offset)
 {
-	nfp_log(NFP_DBG3, "nfp_inl: addr %p", pdev->bar[bar] + offset);
+	nfp_log(NFP_DBG3, "%s: addr %p", __func__, pdev->bar[bar] + offset);
 	return ioread16(pdev->bar[bar] + offset);
 }
 
 void nfp_outl(nfp_cdev *pdev, int bar, int offset, unsigned int data)
 {
-	nfp_log(NFP_DBG3, "nfp_outl: addr %p, data %x", pdev->bar[bar] + offset,
-		data);
+	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
+		pdev->bar[bar] + offset, data);
 	iowrite32(data, pdev->bar[bar] + offset);
 }
 
 void nfp_outw(nfp_cdev *pdev, int bar, int offset, unsigned short data)
 {
-	nfp_log(NFP_DBG3, "nfp_outl: addr %p, data %x", pdev->bar[bar] + offset,
-		data);
+	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
+		pdev->bar[bar] + offset, data);
 	iowrite16(data, pdev->bar[bar] + offset);
 }
 

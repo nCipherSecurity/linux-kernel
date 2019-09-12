@@ -32,7 +32,7 @@
 #include "nfp_common.h"
 
 #define NFP_SUCCESS	0x0
-#define NFP_EFAULT      0x1
+#define NFP_EFAULT	0x1
 #define NFP_ENOMEM	0x2
 #define NFP_EINVAL	0x3
 #define NFP_EIO		0x4
@@ -41,16 +41,14 @@
 #define NFP_EINTR	0x7
 #define NFP_ESTARTING	0x8
 #define NFP_EAGAIN	0x9
-#define NFP_EPOLLING     0xA
-#define NFP_EINTERRUPT   0xB
+#define NFP_EPOLLING	0xA
+#define NFP_EINTERRUPT	0xB
 #define NFP_EUNKNOWN	0x100
 
 typedef int nfp_err;
 
-extern oserr_t nfp_oserr(nfp_err nerr);
-extern nfp_err nfp_error(oserr_t oerr);
-
-#define nfr(x) return nfp_error((x))
+oserr_t nfp_oserr(nfp_err nerr);
+nfp_err nfp_error(oserr_t oerr);
 
 #define nfer(x, fn, msg)                                                       \
 	{                                                                      \

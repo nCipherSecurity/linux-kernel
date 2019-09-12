@@ -157,22 +157,11 @@ extern "C" {
 #define NFPCI_KERN_RD_LENGTH		    (NFPCI_OFFSET_KERN_RD + \
 					     NFPCI_OFFSET_LENGTH)
 #define NFPCI_KERN_RD_DATA		    (NFPCI_OFFSET_KERN_RD + \
-					     aNFPCI_OFFSET_DATA)
+					     NFPCI_OFFSET_DATA)
 /* address in PCI space of host buffer for NFPCI_JOB_CONTROL_PCI_PUSH */
 #define NFPCI_KERN_RD_PUSH_ADDR		    (NFPCI_OFFSET_KERN_RD + \
 					     NFPCI_OFFSET_PUSH_ADDR)
 #define NFPCI_MAX_KERN_RD_LEN		    (0x000FFF8)
-
-#ifdef DEFINE_NFPCI_PACKED_STRUCTS
-typedef struct {
-	UINT32 controlword;
-	UINT32 length; /* length of data to follow */
-	union {
-		BYTE data[1];
-		UINT32 addr;
-	} uu;
-} NFPCI_JOBS_BLOCK;
-#endif
 
 #define NFPCI_JOB_CONTROL		    0x00000001
 #define NFPCI_JOB_CONTROL_PCI_PUSH	    0x00000002
@@ -228,17 +217,17 @@ typedef struct {
 
 #define NFPCI_SCRATCH_CONTROL		    0
 
-#define NFPCI_SCRATCH_CONTROL_HOST_MOI	    (1 << 0)
+#define NFPCI_SCRATCH_CONTROL_HOST_MOI	    (0x1)
 #define NFPCI_SCRATCH_CONTROL_MODE_SHIFT    1
 #define NFPCI_SCRATCH_CONTROL_MODE_MASK	    (3 << \
 					     NFPCI_SCRATCH_CONTROL_MODE_SHIFT)
 
 #define NFPCI_SCRATCH_STATUS		    1
 
-#define NFPCI_SCRATCH_STATUS_MONITOR_MOI         (1 << 0)
-#define NFPCI_SCRATCH_STATUS_APPLICATION_MOI     (1 << 1)
-#define NFPCI_SCRATCH_STATUS_APPLICATION_RUNNING (1 << 2)
-#define NFPCI_SCRATCH_STATUS_ERROR               (1 << 3)
+#define NFPCI_SCRATCH_STATUS_MONITOR_MOI         (0x1)
+#define NFPCI_SCRATCH_STATUS_APPLICATION_MOI     (0x2)
+#define NFPCI_SCRATCH_STATUS_APPLICATION_RUNNING (0x4)
+#define NFPCI_SCRATCH_STATUS_ERROR               (0x8)
 
 #define NFPCI_SCRATCH_ERROR_LO		    2
 #define NFPCI_SCRATCH_ERROR_HI		    3

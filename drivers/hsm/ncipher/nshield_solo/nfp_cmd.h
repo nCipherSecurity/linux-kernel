@@ -52,7 +52,7 @@ extern "C" {
 
 /* read and write called with userspace buffer */
 
-typedef struct nfpcmd_dev {
+struct nfpcmd_dev {
 	const char *name;
 	unsigned short vendorid, deviceid, sub_vendorid, sub_deviceid;
 	unsigned int bar_sizes[NFP_BARSIZES_COUNT]; /* includes IO bit */
@@ -72,24 +72,24 @@ typedef struct nfpcmd_dev {
 	nfp_err(*ensure_reading)(unsigned int addr, int len, void *ctx,
 				 int lock_flag);
 	nfp_err(*debug)(int cmd, void *ctx);
-	nfp_err(*setcontrol)(const nfdev_control_str * control,
+	nfp_err(*setcontrol)(const struct nfdev_control_str * control,
 			     void *ctx); /* may be NULL */
-	nfp_err(*getstatus)(nfdev_status_str * status,
+	nfp_err(*getstatus)(struct nfdev_status_str * status,
 			    void *ctx); /* may be NULL */
-} nfpcmd_dev;
+};
 
 #define NFP_CMD_FLG_NEED_IOBUF 0x1
 #define NFP_CMD_FLG_NEED_MSI   0x2
 
 /* list of all supported drivers ---------------------------------------- */
 
-extern const nfpcmd_dev *nfp_drvlist[];
+extern const struct nfpcmd_dev *nfp_drvlist[];
 
-extern const nfpcmd_dev i21555_cmddev;
-extern const nfpcmd_dev fsl_c293_cmddev;
-extern const nfpcmd_dev fsl_p3041_cmddev;
-extern const nfpcmd_dev fsl_t1022_cmddev;
-extern const nfpcmd_dev bcm5820_cmddev;
+extern const struct nfpcmd_dev i21555_cmddev;
+extern const struct nfpcmd_dev fsl_c293_cmddev;
+extern const struct nfpcmd_dev fsl_p3041_cmddev;
+extern const struct nfpcmd_dev fsl_t1022_cmddev;
+extern const struct nfpcmd_dev bcm5820_cmddev;
 
 #ifndef PCI_BASE_ADDRESS_SPACE_IO
 #define PCI_BASE_ADDRESS_SPACE_IO	0x1
