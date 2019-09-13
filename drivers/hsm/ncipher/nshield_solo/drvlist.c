@@ -14,7 +14,7 @@ history
 #include "nfp_fixup.h"
 #include "nfp_cmd.h"
 
-const nfpcmd_dev *nfp_drvlist[] = {
+const struct nfpcmd_dev *nfp_drvlist[] = {
   &i21555_cmddev,
   &fsl_c293_cmddev,
   &fsl_p3041_cmddev,

@@ -557,7 +557,9 @@ static nfp_err fsl_chupdate(char *data, int len, void *ctx) {
  * @param ctx device context (always the device itself).
  * @returns NFP_SUCCESS if successful, other value if error.
  */
-static nfp_err fsl_set_control(const nfdev_control_str *control, void *ctx) {
+static nfp_err fsl_set_control(const struct nfdev_control_str *control,
+			       void *ctx)
+{
     uint32_t control_data;
     nfp_cdev *cdev;
     nfp_err ne;
@@ -593,7 +595,7 @@ static nfp_err fsl_set_control(const nfdev_control_str *control, void *ctx) {
  * @param ctx device context (always the device itself).
  * @returns NFP_SUCCESS if successful, other value if error.
  */
-static nfp_err fsl_get_status(nfdev_status_str *status, void *ctx) {
+static nfp_err fsl_get_status(struct nfdev_status_str *status, void *ctx) {
     nfp_cdev *cdev;
     nfp_err ne;
     uint32_t status_data;
@@ -859,7 +861,7 @@ static nfp_err fsl_write(int unsigned addr, char const *block, int len, void *ct
 }
 
 /** FSL c293 device configuration. */
-const nfpcmd_dev fsl_c293_cmddev = { "nCipher Next Gen PCI",
+const struct nfpcmd_dev fsl_c293_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_C293,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -868,7 +870,7 @@ const nfpcmd_dev fsl_c293_cmddev = { "nCipher Next Gen PCI",
         fsl_chupdate, fsl_ensure_reading, 0, 0, 0 };
 
 /** FSL Hammerhead p3041 device configuration. */
-const nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
+const struct nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_P3041,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -878,7 +880,7 @@ const nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
 
 /** FSL Sawshark p3041 device configuration. */
 #if defined(__unix__) || defined(__sun) || defined(__hpux)
-const nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
+const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
@@ -889,7 +891,7 @@ const nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
 /* NOTE setting FSL_MEMSIZE for both Element [0] and Element [1] in order
 to accomodate scenarios when both Bar0 and Bar1 Mem Resources are Available
 */
-const nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
+const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
         PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
         PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1,
         { FSL_MEMSIZE, FSL_MEMSIZE, 0, 0, 0, 0 },

@@ -62,7 +62,7 @@
 
 /* device list --------------------------------------------------- */
 
-nfp_dev *nfp_dev_list[NFP_MAXDEV];
+struct nfp_dev *nfp_dev_list[NFP_MAXDEV];
 static int nfp_num_devices = 0;
 
 static struct class *nfp_class;
@@ -99,8 +99,14 @@ int nfp_debug = 1;
  */
 int nfp_ifvers = 0;
 
-NFP_MODULE_PREAMBLE
-NFP_MODULE_LICENSE
+MODULE_AUTHOR("nCipher");
+MODULE_DESCRIPTION("nCipher PCI HSM driver");
+module_param(nfp_debug, int, 0644);
+module_param(nfp_ifvers, int, 0444);
+MODULE_PARM_DESC(nfp_debug, "debug level (1-4)");
+MODULE_PARM_DESC(nfp_ifvers, "maximum interface version (1-2), or any (0)");
+
+MODULE_LICENSE("GPL");
 
 /** @} */
 
@@ -153,7 +159,7 @@ static unsigned int nfp_poll(struct file *file, poll_table *wait) {
     return mask;
 }
 
-void nfp_write_complete(nfp_dev *ndev, int ok) {
+void nfp_write_complete(struct nfp_dev *ndev, int ok) {
     nfp_log(NFP_DBG4, "nfp_write_complete: entered");
 
     /* could be executed simultaneously by more than one thread -
@@ -182,7 +188,7 @@ void nfp_write_complete(nfp_dev *ndev, int ok) {
 
     /* wake up anyone waiting */
 
-    nfp_wake_up_all(&ndev->wr_queue);
+    wake_up_all(&ndev->wr_queue);
 }
 #define CREATE_TRACE_POINTS
 
@@ -200,7 +206,7 @@ void nfp_write_complete(nfp_dev *ndev, int ok) {
  * @returns actual number of bytes written or a negative value if an error occurred.
  */
 static ssize_t nfp_write(struct file *file, char const __user *buf, size_t count, loff_t *off) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
     unsigned int addr;
     int nbytes;
     int minor;
@@ -286,7 +292,7 @@ static ssize_t nfp_write(struct file *file, char const __user *buf, size_t count
     return count;
 }
 
-void nfp_read_complete(nfp_dev *ndev, int ok) {
+void nfp_read_complete(struct nfp_dev *ndev, int ok) {
     nfp_log(NFP_DBG4, "nfp_read_complete: entered");
 
     /* could be executed simultaneously by more than one thread -
@@ -320,7 +326,7 @@ void nfp_read_complete(nfp_dev *ndev, int ok) {
 
     /* wake up anyone waiting */
 
-    nfp_wake_up_all(&ndev->rd_queue);
+    wake_up_all(&ndev->rd_queue);
 }
 
 #if defined (from_timer)
@@ -330,14 +336,14 @@ typedef unsigned long compat_timer_arg_t;
 #endif
 
 static void nfp_read_timeout(compat_timer_arg_t t) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
 
     nfp_log(NFP_DBG4, "nfp_read_timeout: entered");
 
 #if defined(from_timer)
     ndev = from_timer(ndev, t, rd_timer);
 #else
-    ndev = (nfp_dev *)t;
+    ndev = (struct nfp_dev *)t;
 #endif
     if (!ndev) {
         nfp_log(NFP_DBG1, "nfp_read_timeout: NULL device.");
@@ -361,7 +367,7 @@ static void nfp_read_timeout(compat_timer_arg_t t) {
  * @returns actual number of bytes read or a negative value if an error occurred.
  */
 static ssize_t nfp_read(struct file *file, char __user *buf, size_t count, loff_t *off) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
     int nbytes;
     int minor;
     nfp_err ne;
@@ -440,7 +446,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count, loff_
     return nbytes;
 }
 
-int nfp_alloc_pci_push( nfp_dev *ndev ) {
+int nfp_alloc_pci_push( struct nfp_dev *ndev ) {
   /* allocate resources needed for PCI Push,
    * if not already allocated.
    * return True if successful
@@ -462,7 +468,7 @@ int nfp_alloc_pci_push( nfp_dev *ndev ) {
   return (ndev->read_buf != NULL);
 }
 
-int nfp_alloc_pci_pull ( nfp_dev *ndev ) {
+int nfp_alloc_pci_pull ( struct nfp_dev *ndev ) {
   /* allocate resources needed for PCI Pull,
    * if not already allocated.
    * return True if successful
@@ -484,7 +490,7 @@ int nfp_alloc_pci_pull ( nfp_dev *ndev ) {
   return (ndev->write_buf != NULL);
 }
 
-void nfp_free_pci_push( nfp_dev *ndev ) {
+void nfp_free_pci_push( struct nfp_dev *ndev ) {
   /* free resources allocated to PCI Push */
   if(ndev->read_buf) {
     dma_unmap_single(&ndev->pcidev->dev, ndev->read_dma,
@@ -495,7 +501,7 @@ void nfp_free_pci_push( nfp_dev *ndev ) {
   }
 }
 
-void nfp_free_pci_pull( nfp_dev *ndev ) {
+void nfp_free_pci_pull( struct nfp_dev *ndev ) {
   /* free resources allocated to PCI Pull */
   if(ndev->write_buf) {
     dma_unmap_single(&ndev->pcidev->dev, ndev->write_dma,
@@ -513,7 +519,7 @@ void nfp_free_pci_pull( nfp_dev *ndev ) {
  * @param ifvers interface verison.
  * @returns interface version actually set.
  */
-static int nfp_set_ifvers(nfp_dev *ndev, int ifvers) {
+static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers) {
 #ifdef _WIN32
 #pragma warning(disable:6239)
 #pragma warning(disable:6326)
@@ -583,7 +589,7 @@ static int nfp_set_ifvers(nfp_dev *ndev, int ifvers) {
  * @returns 0 if successful.
  */
 static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, long unsigned arg) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
     int minor;
 
     nfp_log(NFP_DBG4, "nfp_ioctl: entered");
@@ -605,7 +611,7 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
   
     switch (cmd) {
     case NFDEV_IOCTL_ENQUIRY: {
-        nfdev_enquiry_str enq_data;
+        struct nfdev_enquiry_str enq_data;
         int err = -EIO;
 
         nfp_log(NFP_DBG4, "nfp_ioctl: enquiry");
@@ -748,7 +754,8 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
 
         nfp_log(NFP_DBG4, "nfp_ioctl: stats");
         if((void *)arg != NULL){
-            COPY_TO_USER((void *)arg, &ndev->common.stats, sizeof(nfdev_stats_str), err);
+            COPY_TO_USER((void *)arg, &ndev->common.stats,
+                         sizeof(struct nfdev_stats_str), err);
             if (err) {
                 nfp_log(NFP_DBG1, "nfp_ioctl: stats: copy to user space failed.");
                 return err;
@@ -763,7 +770,7 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
 
     case NFDEV_IOCTL_CONTROL: {
         int err = -EIO;
-        nfdev_control_str control;
+        struct nfdev_control_str control;
 
         nfp_log(NFP_DBG4, "nfp_ioctl: control");
         if((void *)arg != NULL){
@@ -789,7 +796,7 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
 
     case NFDEV_IOCTL_STATUS: {
         int err = -EIO;
-        nfdev_status_str status;
+        struct nfdev_status_str status;
 
         nfp_log(NFP_DBG4, "nfp_ioctl: status");
 
@@ -841,8 +848,8 @@ static int nfp_ioctl(struct inode *inode, struct file *file, unsigned int cmd, l
 static long nfp_unlocked_ioctl(struct file *file, unsigned int cmd, long unsigned arg) {
     long ret;
     int minor;
-    nfp_dev *ndev;
-  
+    struct nfp_dev *ndev;
+
     nfp_log( NFP_DBG2, "nfp_unlocked_ioctl: entered" );
   
     minor = MINOR( INODE_FROM_FILE( file )->i_rdev );
@@ -863,13 +870,13 @@ static long nfp_unlocked_ioctl(struct file *file, unsigned int cmd, long unsigne
 #endif
 
 static irqreturn_t nfp_isr(int irq, void *context) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
     int handled;
     nfp_err ne;
 
     nfp_log(NFP_DBG4, "nfp_isr: entered");
 
-    ndev = (nfp_dev *)context;
+    ndev = (struct nfp_dev *)context;
     if (!ndev) {
         nfp_log(NFP_DBG1, "nfp_isr: no device associated with this interrupt");
         return IRQ_NONE;
@@ -893,7 +900,7 @@ static irqreturn_t nfp_isr(int irq, void *context) {
  * @return 0 if successful.
  */
 static int nfp_open(struct inode *inode, struct file *file) {
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
     nfp_err ne;
     int minor = MINOR( INODE_FROM_FILE( file )->i_rdev );
 
@@ -964,8 +971,8 @@ static int nfp_open(struct inode *inode, struct file *file) {
  * @param file  device file pointer.
  * @returns 0 if successful.
  */
-static release_t nfp_release(struct inode *node, struct file *file) {
-    nfp_dev *ndev;
+static int nfp_release(struct inode *node, struct file *file) {
+    struct nfp_dev *ndev;
     long timeout;
     nfp_err ne;
     int minor = MINOR( INODE_FROM_FILE( file )->i_rdev );
@@ -978,24 +985,24 @@ static release_t nfp_release(struct inode *node, struct file *file) {
 
     if (minor>=NFP_MAXDEV) {
       nfp_log( NFP_DBG1, "nfp_release: minor out of range." );
-      RELEASE_RETURN( -ENODEV );
+      return( -ENODEV );
     }
 
     ndev = nfp_dev_list[ minor ];
     if(!ndev) {
       nfp_log(NFP_DBG1, "nfp_release: cannot find dev.");
-      RELEASE_RETURN( -ENODEV );
+      return( -ENODEV );
     }
   
     {
       nfp_wait_queue_t wait;
       timeout= 1;
-      nfp_init_waitqueue_entry( &wait, current);
+      init_waitqueue_entry( &wait, current);
       current->state= TASK_UNINTERRUPTIBLE;
       add_wait_queue(&ndev->rd_queue, &wait);
       if (test_bit(WAIT_BIT, &ndev->rd_outstanding)) {
         nfp_log( NFP_DBG2, "nfp_release: read outstanding");
-        nfp_schedule_timeout (NFP_TIMEOUT, timeout);
+        timeout = schedule_timeout(NFP_TIMEOUT);
         nfp_log( NFP_DBG3, "nfp_release: finished waiting");
       }
       current->state= TASK_RUNNING;
@@ -1023,7 +1030,7 @@ static release_t nfp_release(struct inode *node, struct file *file) {
         return nfp_oserr(ne);
     }
 
-    RELEASE_RETURN(0);
+    return(0);
 }
 
 /**
@@ -1051,7 +1058,7 @@ static struct file_operations nfp_fops = {
 
 /* device setup -------------------------------------------------- */
 
-static void nfp_dev_destroy( nfp_dev *ndev, struct pci_dev *pci_dev ) {
+static void nfp_dev_destroy( struct nfp_dev *ndev, struct pci_dev *pci_dev ) {
   int i;
   nfp_log(NFP_DBG2,"nfp_dev_destroy: entered");
   if( ndev ) {
@@ -1066,15 +1073,15 @@ static void nfp_dev_destroy( nfp_dev *ndev, struct pci_dev *pci_dev ) {
       if( ndev->common.bar[i] ) {
         nfp_log(NFP_DBG3, "nfp_dev_destroy: freeing MEM BAR, %d", i);
         release_mem_region( pci_resource_start(pci_dev, i), pci_resource_len(pci_dev, i) );
-        IOUNMAP( ndev->common.bar[i] );
+        iounmap( ndev->common.bar[i] );
       }
     nfp_log(NFP_DBG3,"nfp_dev_destroy: freeing ndev");
     kfree( ndev );
   }
 }
 
-static int nfp_setup( const nfpcmd_dev *cmddev, unsigned char bus, unsigned char slot, unsigned int bar[6], unsigned int irq_line, struct pci_dev *pcidev) {
-  nfp_dev *ndev = 0;
+static int nfp_setup( const struct nfpcmd_dev *cmddev, unsigned char bus, unsigned char slot, unsigned int bar[6], unsigned int irq_line, struct pci_dev *pcidev) {
+  struct nfp_dev *ndev = 0;
   nfp_err ne;
   int i;
 
@@ -1109,9 +1116,9 @@ static int nfp_setup( const nfpcmd_dev *cmddev, unsigned char bus, unsigned char
       }
 
       if (bar_flags & PCI_BASE_ADDRESS_SPACE_PREFETCHABLE) {
-        ndev->common.bar[i] = IOREMAP( bar[i], map_bar_size );
+        ndev->common.bar[i] = ioremap( bar[i], map_bar_size );
       } else {
-        ndev->common.bar[i] = IOREMAP_NOCACHE( bar[i], map_bar_size );
+        ndev->common.bar[i] = ioremap_nocache( bar[i], map_bar_size );
       }
 
       if( ndev->common.bar[i] == NULL ) {
@@ -1121,12 +1128,12 @@ static int nfp_setup( const nfpcmd_dev *cmddev, unsigned char bus, unsigned char
     }
   }
 
-  nfp_init_waitqueue_head( &ndev->wr_queue );
-  nfp_init_waitqueue_head( &ndev->rd_queue );
+  init_waitqueue_head( &ndev->wr_queue );
+  init_waitqueue_head( &ndev->rd_queue );
 
   set_bit(0, &ndev->wr_ready);
 
-  spinlock_init( &ndev->spinlock );
+  ndev->spinlock = __SPIN_LOCK_UNLOCKED(ndev->spinlock);
 
   ne = ndev->cmddev->create(&ndev->common);
   if( ne != NFP_SUCCESS) {
@@ -1190,7 +1197,7 @@ fail_continue:
 static int __devinit nfp_pci_probe(struct pci_dev *pcidev, struct pci_device_id const *id) {
     int i;
     unsigned int bar[6];
-    const nfpcmd_dev *cmddev = nfp_drvlist[id->driver_data];
+    const struct nfpcmd_dev *cmddev = nfp_drvlist[id->driver_data];
     long unsigned iosize;
     unsigned int irq_line;
     int pos = 0u;
@@ -1284,7 +1291,7 @@ static int __devinit nfp_pci_probe(struct pci_dev *pcidev, struct pci_device_id 
  */
 static void __devexit nfp_pci_remove(struct pci_dev *pcidev) {
     int index;
-    nfp_dev *ndev;
+    struct nfp_dev *ndev;
 
     nfp_log(NFP_DBG1, "nfp_pci_remove: removing PCI device %s", pci_name(pcidev));
 
@@ -1378,7 +1385,7 @@ static int nfp_init( void ) {
   }
 
   index= 0;
-  return pci_module_init(&nfp_pci_driver);
+  return pci_register_driver(&nfp_pci_driver);
 }
 
 /** @} */
