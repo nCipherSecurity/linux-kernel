@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
  * drvlist.c: nCipher PCI HSM command driver list
- * (c) nCipher Security Limited 2019
  */
 
 #include "nfp_common.h"

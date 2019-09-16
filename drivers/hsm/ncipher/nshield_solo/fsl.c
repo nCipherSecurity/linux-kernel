@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
-
 /*
  *
  * fsl.c: nCipher PCI HSM FSL command driver
- *
- * (C) Copyright nCipher Security Limited 2019 All rights reserved
- *
- * history
- *
- * 09/10/2001 jsh  Original
  *
  */
 
