@@ -11,7 +11,6 @@
 #include "nfp_hostif.h"
 #include "nfp_osif.h"
 #include "nfp_error.h"
-#include "autoversion.h"
 #include "nfp_dev.h"
 
 #include <linux/spinlock.h>
