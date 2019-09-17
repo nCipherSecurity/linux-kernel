@@ -12,10 +12,6 @@
  *
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef NFPCI_H
 #define NFPCI_H
 
@@ -194,7 +190,3 @@ extern "C" {
 #define NFPCI_SCRATCH_ERROR_HI		    3
 
 #endif /* NFPCI_H */
-
-#ifdef __cplusplus
-}
-#endif

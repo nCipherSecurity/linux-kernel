@@ -14,10 +14,6 @@
 #include "nfp_cmd.h"
 #include "nfpci.h"
 
-#ifdef _MSC_VER
-#define __func__ __func__
-#endif
-
 /* If defined, use aggressive checking for errors. */
 #define FSL_AGRESSIVE_CHECKING 0
 
@@ -54,23 +50,8 @@ static int fsl_create(struct nfp_cdev *cdev)
 	 */
 	TO_LE32_MEM(&clr, NFAST_INT_DEVICE_CLR);
 
-#if defined(__unix__) || defined(__sun) || defined(__hpux)
 	cdev->active_bar = FSL_MEMBAR;
 	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS, clr);
-#elif defined(WINVER)
-	/* check to see if Bar0 and Bar1 are open for backwards compatibility.
-	 * If both bars are open Element [1] in the array will be populated
-	 */
-	if (!cdev->bar[FSL_MEMBAR]) {
-		cdev->active_bar = 0;
-		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS,
-			 clr);
-	} else {
-		cdev->active_bar = 1;
-		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS,
-			 clr);
-	}
-#endif
 
 	if (!cdev->bar[cdev->active_bar]) {
 		nfp_log(NFP_DBG1, "%s: error: null FSL memory BAR[%d]",
@@ -1079,7 +1060,6 @@ const struct nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
 				      fsl_get_status };
 
 /** FSL Sawshark p3041 device configuration. */
-#if defined(__unix__) || defined(__sun) || defined(__hpux)
 const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
 				      PCI_VENDOR_ID_FREESCALE,
 				      PCI_DEVICE_ID_FREESCALE_T1022,
@@ -1102,32 +1082,4 @@ const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
 				      0,
 				      fsl_set_control,
 				      fsl_get_status };
-#elif defined(WINVER)
-/* NOTE setting FSL_MEMSIZE for both Element [0] and Element [1] in
- * order to accommodate scenarios when both Bar0 and Bar1 Mem Resources
- * are Available
- */
-const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
-				      PCI_VENDOR_ID_FREESCALE,
-				      PCI_DEVICE_ID_FREESCALE_T1022,
-				      PCI_VENDOR_ID_NCIPHER,
-				      PCI_SUBSYSTEM_ID_NFAST_REV1,
-				      { FSL_MEMSIZE, FSL_MEMSIZE, 0, 0, 0, 0 },
-				      NFP_CMD_FLG_NEED_MSI,
-				      NFDEV_IF_PCI_PULL,
-				      fsl_create,
-				      fsl_destroy,
-				      fsl_started,
-				      fsl_stopped,
-				      fsl_open,
-				      fsl_close,
-				      fsl_isr,
-				      fsl_write,
-				      fsl_read,
-				      fsl_chupdate,
-				      fsl_ensure_reading,
-				      0,
-				      fsl_set_control,
-				      fsl_get_status };
-#endif
 /* end of file */

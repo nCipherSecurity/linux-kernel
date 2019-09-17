@@ -8,7 +8,6 @@
 
 #include <linux/types.h>
 
-#define DEFINE_NFPCI_PACKED_STRUCTS
 #include "nfpci.h"
 #include "nfdev-linux.h"
 
