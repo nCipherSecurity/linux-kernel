@@ -11,10 +11,6 @@
  *
  *************************************************************************/
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef NFPCMD_H
 #define NFPCMD_H
 
@@ -83,9 +79,5 @@ extern const struct nfpcmd_dev bcm5820_cmddev;
 #define NFP_NO_LOCK   0
 
 #endif /* NFP_CMD_H */
-
-#ifdef __cplusplus
-}
-#endif
 
 /* end of file */

@@ -4,10 +4,6 @@
  * Declares FSL device configurations.
  */
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifndef FSL_H
 #define FSL_H
 
@@ -90,10 +86,6 @@ extern "C" {
 /** Application firmware running and supports error reporting */
 #define NFDEV_STATUS_APPLICATION_RUNNING 0x0004
 
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 /* end of file */

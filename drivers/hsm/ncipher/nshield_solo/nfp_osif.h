@@ -67,12 +67,7 @@ int nfp_copy_to_dev(struct nfp_cdev *cdev, int bar, int offset,
 #define NFP_DBG3	3
 #define NFP_DBG4	4
 
-#ifdef STRANGE_VARARGS
-void nfp_log(void);
-#else
 void nfp_log(int severity, const char *format, ...);
-#endif
-
 extern int nfp_debug;
 
 #endif
