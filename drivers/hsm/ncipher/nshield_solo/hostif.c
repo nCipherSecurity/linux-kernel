@@ -21,7 +21,6 @@
 #include "nfp_dev.h"
 #include "nfp_osif.h"
 #include "nfp_cmd.h"
-#include "devinit.h"
 #include <linux/bitops.h>
 
 #include "i21555.h"
@@ -549,10 +548,6 @@ void nfp_free_pci_pull(struct nfp_dev *ndev)
  */
 static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 {
-#ifdef _WIN32
-#pragma warning(disable : 6239)
-#pragma warning(disable : 6326)
-#endif
 	int max_ifvers;
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
@@ -1494,8 +1489,7 @@ MODULE_DEVICE_TABLE(pci, nfp_pci_tbl);
  */
 static struct pci_driver nfp_pci_driver = { .name = "nshield_solo",
 					    .probe = nfp_pci_probe,
-					    .remove =
-						    __devexit_p(nfp_pci_remove),
+					    .remove = nfp_pci_remove,
 					    .id_table = nfp_pci_tbl };
 
 /*--------------------*/
