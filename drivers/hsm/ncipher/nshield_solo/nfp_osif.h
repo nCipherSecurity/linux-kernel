@@ -8,9 +8,6 @@
 #ifndef NFP_OSIF_H
 #define NFP_OSIF_H
 
-#include "nfp_hostif.h"
-#include "nfp_error.h"
-
 /* implementation choices ----------------------------------------- */
 
 /** ISR strict locking.
