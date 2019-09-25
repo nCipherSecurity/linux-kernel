@@ -7,8 +7,6 @@
 #ifndef FSL_H
 #define FSL_H
 
-#include "nfpci.h"
-
 /* PCI FSL definitions */
 
 #ifndef PCI_VENDOR_ID_FREESCALE

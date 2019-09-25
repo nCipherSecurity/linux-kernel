@@ -5,11 +5,14 @@
  *
  */
 
+#include "nfp_fixup.h"
+#include "nfpci.h"
 #include "fsl.h"
-#include "fsl_osif.h"
 #include "nfp_common.h"
 #include "nfp_error.h"
+#include "nfdev-common.h"
 #include "nfp_hostif.h"
+#include "fsl_osif.h"
 #include "nfp_osif.h"
 #include "nfp_cmd.h"
 #include "nfpci.h"
