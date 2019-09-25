@@ -1,6 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
-#ifndef I21555_H
-#define I21555_H
+/*
+ * Interfaces to the Solo's Intel 21555 bridge
+ */
+#ifndef NFP_I21555_H
+#define NFP_I21555_H
+
+#include "pci.h"
 
 #ifndef PCI_VENDOR_ID_INTEL
 #define PCI_VENDOR_ID_INTEL			0x8086
@@ -58,4 +63,4 @@
 
 int i21555_debug(int cmd, void *ctx);
 
-#endif
+#endif /* NFP_I21555_H */
