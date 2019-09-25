@@ -5,8 +5,10 @@
  *
  */
 
+#include "nfp_fixup.h"
 #include "nfp_common.h"
 #include "nfp_error.h"
+#include "nfdev-common.h"
 #include "nfp_hostif.h"
 #include "nfp_osif.h"
 #include "i21555.h"

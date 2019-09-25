@@ -8,8 +8,6 @@
 #ifndef NFDEV_LINUX_H
 #define NFDEV_LINUX_H
 
-#include "nfdev-common.h"
-
 #define NFDEV_IOCTL_TYPE 0x10
 
 #define NFDEV_IOCTL_CHUPDATE                                                   \

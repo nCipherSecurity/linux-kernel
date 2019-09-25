@@ -6,11 +6,6 @@
 #ifndef NFP_DEV_H
 #define NFP_DEV_H
 
-#include "nfp_fixup.h"
-#include "nfp_hostif.h"
-#include "nfp_cmd.h"
-#include "nfp_osif.h"
-
 /* Interpretation of the bits of struct nfp_dev.rd_outstanding */
 #define WAIT_BIT  0 /* waiting for data */
 #define CMPLT_BIT 1 /* completing a read (got data or timing out) */

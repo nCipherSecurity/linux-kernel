@@ -6,11 +6,6 @@
 #ifndef NFP_COMMON_H
 #define NFP_COMMON_H
 
-#include <linux/types.h>
-
-#include "nfpci.h"
-#include "nfdev-linux.h"
-
 /* endian byte swapping ------------------------------------------- */
 
 /* little endian systems only for now */

@@ -6,10 +6,6 @@
 #ifndef FSL_OSIF_H
 #define FSL_OSIF_H
 
-#include "fsl.h"
-#include "nfp_error.h"
-#include "nfp_hostif.h"
-
 #include <linux/io.h>
 
 /**

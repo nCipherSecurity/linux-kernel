@@ -10,7 +10,6 @@
 
 #define VERSION(ver, rel, seq) (((ver) << 16) | ((rel) << 8) | (seq))
 #include <linux/version.h>
-
 #include <linux/types.h>
 #include <linux/time.h>
 #include <linux/io.h>
