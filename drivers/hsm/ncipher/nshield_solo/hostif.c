@@ -14,20 +14,12 @@
 #ifdef MODVERSIONS
 #include <linux/modversions.h>
 #endif
-#include "nfp_common.h"
-#include "nfp_error.h"
-#include "nfp_fixup.h"
-#include "nfdev-common.h"
-#include "nfdev-linux.h"
-#include "nfp_hostif.h"
-#include "nfpci.h"
+#include <linux/bitops.h>
+
+#include "osif.h"
+#include "pci.h"
 #include "i21555.h"
 #include "fsl.h"
-#include "fsl_osif.h"
-#include "nfp_dev.h"
-#include "nfp_osif.h"
-#include "nfp_cmd.h"
-#include <linux/bitops.h>
 
 #define NF_smp_mb__before_atomic smp_mb__before_atomic
 

@@ -1,11 +1,13 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
-/** @file
- *
- * Declares FSL device configurations.
+/**
+ * Interface to the Solo XC's T1022 communication processor
  */
 
-#ifndef FSL_H
-#define FSL_H
+#ifndef NFP_FSL_H
+#define NFP_FSL_H
+
+#include <linux/io.h>
+#include "pci.h"
 
 /* PCI FSL definitions */
 
@@ -84,6 +86,33 @@
 /** Application firmware running and supports error reporting */
 #define NFDEV_STATUS_APPLICATION_RUNNING 0x0004
 
-#endif
+/**
+ * Writes a 32 bit word across PCI to the FSL card.
+ *
+ * @param cdev command device.
+ * @param bar base address region id.
+ * @param offset offset in bytes from base address.
+ * @param value 32 bit value being written.
+ */
+static inline void fsl_outl(struct nfp_cdev *cdev, int bar, int offset,
+			    unsigned int value)
+{
+	iowrite32(value, cdev->bar[bar] + FSL_DOORBELL_LOCATION + offset);
+}
+
+/**
+ * Reads a 32 bit word across PCI from the FSL card.
+ *
+ * @param cdev command device.
+ * @param bar base address region id.
+ * @param offset offset in bytes from base address.
+ * @returns 32 bit value.
+ */
+static inline uint32_t fsl_inl(struct nfp_cdev *cdev, int bar, int offset)
+{
+	return ioread32(cdev->bar[bar] + FSL_DOORBELL_LOCATION + offset);
+}
+
+#endif /* NFP_FSL_H */
 
 /* end of file */
