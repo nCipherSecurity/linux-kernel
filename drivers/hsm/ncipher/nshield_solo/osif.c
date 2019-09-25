@@ -5,17 +5,10 @@
  *
  */
 
-#include "nfp_fixup.h"
-#include "nfp_common.h"
-#include "nfdev-common.h"
-#include "nfp_error.h"
-#include "nfp_hostif.h"
-#include "nfp_osif.h"
-#include "nfp_error.h"
-#include "nfp_dev.h"
-
 #include <linux/spinlock.h>
 #include <linux/slab.h>
+
+#include "osif.h"
 
 void nfp_sleep(int ms)
 {
