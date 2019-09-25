@@ -6,8 +6,6 @@
 #ifndef NFP_ERROR_H
 #define NFP_ERROR_H
 
-#include "nfp_common.h"
-
 #define NFP_SUCCESS	0x0
 #define NFP_EFAULT	0x1
 #define NFP_ENOMEM	0x2

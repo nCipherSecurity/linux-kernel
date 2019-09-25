@@ -14,9 +14,6 @@
 #ifndef NFPCMD_H
 #define NFPCMD_H
 
-#include "nfp_hostif.h"
-#include "nfp_error.h"
-
 /* read and write called with userspace buffer */
 
 struct nfpcmd_dev {

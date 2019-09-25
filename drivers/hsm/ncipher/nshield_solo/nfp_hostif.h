@@ -8,8 +8,6 @@
 #ifndef NFP_HOSTIF_H
 #define NFP_HOSTIF_H
 
-#include "nfdev-common.h"
-
 #define NFP_BARSIZES_COUNT 6
 #define NFP_BARSIZES_MASK ~0xF
 
