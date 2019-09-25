@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef NFPCI_H
-#define NFPCI_H
+#ifndef NFP_PCI_H
+#define NFP_PCI_H
 
 /* Sizes of some regions */
 
@@ -189,4 +189,4 @@
 #define NFPCI_SCRATCH_ERROR_LO		    2
 #define NFPCI_SCRATCH_ERROR_HI		    3
 
-#endif /* NFPCI_H */
+#endif /* NFP_PCI_H */
