@@ -1445,7 +1445,8 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 }
 
 /**
- * PCI device ID table.
+ * PCI device ID table.  We use the driver_data field to hold an index into
+ * nfp_drvlist, so bear than in mind when editing eiher.
  */
 static struct pci_device_id nfp_pci_tbl[] = {
 	{
@@ -1455,22 +1456,10 @@ static struct pci_device_id nfp_pci_tbl[] = {
 		0 /* Index into nfp_drvlist */
 	},
 	{
-		PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_C293,
-		PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1, 0,
-		0, /* Ignore class */
-		1 /* Index into nfp_drvlist */
-	},
-	{
-		PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_P3041,
-		PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1, 0,
-		0, /* Ignore class */
-		2 /* Index into nfp_drvlist */
-	},
-	{
 		PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
 		PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1, 0,
 		0, /* Ignore class */
-		3 /* Index into nfp_drvlist */
+		1 /* Index into nfp_drvlist */
 	},
 	{
 		0,

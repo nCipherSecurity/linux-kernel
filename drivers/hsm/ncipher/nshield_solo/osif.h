@@ -181,10 +181,7 @@ struct nfp_dev {
 extern const struct nfpcmd_dev *nfp_drvlist[];
 
 extern const struct nfpcmd_dev i21555_cmddev;
-extern const struct nfpcmd_dev fsl_c293_cmddev;
-extern const struct nfpcmd_dev fsl_p3041_cmddev;
 extern const struct nfpcmd_dev fsl_t1022_cmddev;
-extern const struct nfpcmd_dev bcm5820_cmddev;
 
 #ifndef PCI_BASE_ADDRESS_SPACE_IO
 #define PCI_BASE_ADDRESS_SPACE_IO	0x1

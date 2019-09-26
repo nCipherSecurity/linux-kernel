@@ -7,6 +7,5 @@
 #include "i21555.h"
 #include "fsl.h"
 
-const struct nfpcmd_dev *nfp_drvlist[] = { &i21555_cmddev, &fsl_c293_cmddev,
-				    &fsl_p3041_cmddev, &fsl_t1022_cmddev,
-				    NULL };
+const struct nfpcmd_dev *nfp_drvlist[] = { &i21555_cmddev, &fsl_t1022_cmddev,
+					   NULL };
