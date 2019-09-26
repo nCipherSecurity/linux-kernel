@@ -1005,55 +1005,7 @@ static int fsl_write(unsigned int addr, char const *block, int len,
 	return NFP_SUCCESS;
 }
 
-/** FSL c293 device configuration. */
-const struct nfpcmd_dev fsl_c293_cmddev = { "nCipher Next Gen PCI",
-				     PCI_VENDOR_ID_FREESCALE,
-				     PCI_DEVICE_ID_FREESCALE_C293,
-				     PCI_VENDOR_ID_NCIPHER,
-				     PCI_SUBSYSTEM_ID_NFAST_REV1,
-				     { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
-				     NFP_CMD_FLG_NEED_MSI,
-				     NFDEV_IF_PCI_PUSH,
-				     fsl_create,
-				     fsl_destroy,
-				     fsl_started,
-				     fsl_stopped,
-				     fsl_open,
-				     fsl_close,
-				     fsl_isr,
-				     fsl_write,
-				     fsl_read,
-				     fsl_chupdate,
-				     fsl_ensure_reading,
-				     0,
-				     0,
-				     0 };
-
-/** FSL Hammerhead p3041 device configuration. */
-const struct nfpcmd_dev fsl_p3041_cmddev = { "nCipher Next Gen PCI",
-				      PCI_VENDOR_ID_FREESCALE,
-				      PCI_DEVICE_ID_FREESCALE_P3041,
-				      PCI_VENDOR_ID_NCIPHER,
-				      PCI_SUBSYSTEM_ID_NFAST_REV1,
-				      { 0, FSL_MEMSIZE, 0, 0, 0, 0 },
-				      NFP_CMD_FLG_NEED_MSI,
-				      NFDEV_IF_PCI_PULL,
-				      fsl_create,
-				      fsl_destroy,
-				      fsl_started,
-				      fsl_stopped,
-				      fsl_open,
-				      fsl_close,
-				      fsl_isr,
-				      fsl_write,
-				      fsl_read,
-				      fsl_chupdate,
-				      fsl_ensure_reading,
-				      0,
-				      fsl_set_control,
-				      fsl_get_status };
-
-/** FSL Sawshark p3041 device configuration. */
+/** FSL Sawshark T1022 device configuration. */
 const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
 				      PCI_VENDOR_ID_FREESCALE,
 				      PCI_DEVICE_ID_FREESCALE_T1022,
