@@ -1006,7 +1006,7 @@ static int fsl_write(unsigned int addr, char const *block, int len,
 }
 
 /** FSL Sawshark T1022 device configuration. */
-const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher Next Gen PCI",
+const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher nShield Solo XC",
 				      PCI_VENDOR_ID_FREESCALE,
 				      PCI_DEVICE_ID_FREESCALE_T1022,
 				      PCI_VENDOR_ID_NCIPHER,

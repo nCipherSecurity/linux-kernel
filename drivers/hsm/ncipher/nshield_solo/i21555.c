@@ -509,7 +509,7 @@ static int i21555_get_status(struct nfdev_status_str *status, void *ctx)
 /* command device structure ------------------------------------- */
 
 const struct nfpcmd_dev i21555_cmddev = {
-	.name = "nCipher Gen 2 PCI",
+	.name = "nCipher nShield Solo",
 	.vendorid = PCI_VENDOR_ID_INTEL,
 	.deviceid = PCI_DEVICE_ID_INTEL_21555,
 	.sub_vendorid = PCI_VENDOR_ID_NCIPHER,
