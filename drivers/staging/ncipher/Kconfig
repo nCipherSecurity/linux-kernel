@@ -1,0 +1,7 @@
+menuconfig NCIPHER
+   bool "Support for nCipher Solo / SoloXC HSMs"
+   help
+     Choose this if you expect to use nCipher Solo or SoloXC
+     Hardware Security Modules (HSM).
+source "drivers/staging/ncipher/nshield_solo/Kconfig"
+#endmenu
