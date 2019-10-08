@@ -1,8 +1,8 @@
 # Enable support for nCipher's nShield Solo and Solo XC
 # HSMs
-config HSM_NSHIELD_SOLO
+config HSM_NCIPHER_NSHIELD_SOLO
    tristate "nCipher Solo and Solo XC family of PCIe HSMs"
-   depends on PCI && HSM
+   depends on PCI && NCIPHER
    help
      Select this as built-in or module if you expect
      to use a Hardware Security Module from nCipher's Solo or Solo XC range.
