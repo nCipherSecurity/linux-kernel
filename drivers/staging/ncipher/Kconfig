@@ -1,7 +1,8 @@
-menuconfig NCIPHER
-   bool "Support for nCipher Solo / SoloXC HSMs"
+# Enable support for nCipher's nShield Solo and Solo XC
+# HSMs
+config HSM_NCIPHER_NSHIELD_SOLO
+   tristate "nCipher Solo and Solo XC family of PCIe HSMs"
+   depends on PCI
    help
-     Choose this if you expect to use nCipher Solo or SoloXC
-     Hardware Security Modules (HSM).
-source "drivers/staging/ncipher/nshield_solo/Kconfig"
-#endmenu
+     Select this as built-in or module if you expect
+     to use a Hardware Security Module from nCipher's Solo or Solo XC range.
