@@ -1,3 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for nCipher nShield HSM drivers
+#
+
 ifneq ($(KERNELRELEASE),)
 include Kbuild
 else
