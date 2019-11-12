@@ -86,11 +86,10 @@
  * @param offset offset in bytes from base address.
  * @param value 32 bit value being written.
  */
-static inline void fsl_outl(struct nfp_cdev *cdev, int offset,
+static inline void fsl_outl(struct nfp_cdev *cdev, int bar, int offset,
 			    unsigned int value)
 {
-	iowrite32(value, cdev->bar[cdev->active_bar] +
-		  FSL_DOORBELL_LOCATION + offset);
+	iowrite32(value, cdev->bar[bar] + FSL_DOORBELL_LOCATION + offset);
 }
 
 /**
@@ -101,10 +100,9 @@ static inline void fsl_outl(struct nfp_cdev *cdev, int offset,
  * @param offset offset in bytes from base address.
  * @returns 32 bit value.
  */
-static inline uint32_t fsl_inl(struct nfp_cdev *cdev, int offset)
+static inline uint32_t fsl_inl(struct nfp_cdev *cdev, int bar, int offset)
 {
-	return ioread32(cdev->bar[cdev->active_bar] + FSL_DOORBELL_LOCATION +
-			offset);
+	return ioread32(cdev->bar[bar] + FSL_DOORBELL_LOCATION + offset);
 }
 
 #endif /* NFP_FSL_H */

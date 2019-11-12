@@ -45,7 +45,7 @@ static int fsl_create(struct nfp_cdev *cdev)
 	TO_LE32_MEM(&clr, NFAST_INT_DEVICE_CLR);
 
 	cdev->active_bar = FSL_MEMBAR;
-	fsl_outl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS, clr);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS, clr);
 
 	if (!cdev->bar[cdev->active_bar]) {
 		nfp_log(NFP_DBG1, "%s: error: null FSL memory BAR[%d]",
@@ -62,8 +62,8 @@ static int fsl_create(struct nfp_cdev *cdev)
 	nfp_log(NFP_DBG3, "%s: clearing read/write doorbell registers",
 		__func__);
 	TO_LE32_MEM(&clr, NFAST_INT_HOST_CLR);
-	fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_CMD, clr);
-	fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_CMD, clr);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_CMD, clr);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_CMD, clr);
 
 	nfp_log(NFP_DBG3, "%s: exiting %s active_bar: %d.",
 		__func__, __func__, cdev->active_bar);
@@ -97,9 +97,12 @@ static int fsl_destroy(void *ctx)
 	if (cdev->bar[cdev->active_bar]) {
 		nfp_log(NFP_DBG3, "%s: clearing doorbell registers", __func__);
 		TO_LE32_MEM(&tmp32, NFAST_INT_DEVICE_CLR);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS, tmp32);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS, tmp32);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS, tmp32);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_STATUS,
+			 tmp32);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_STATUS,
+			 tmp32);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS,
+			 tmp32);
 	} else {
 		nfp_log(NFP_DBG1, "%s: warning: no FSL BAR[%d] memory",
 			__func__, cdev->active_bar);
@@ -195,7 +198,8 @@ static int fsl_started(struct nfp_cdev *cdev, int lock_flag)
 	}
 
 	/* check the status register to see if epd has started */
-	doorbell_cs = fsl_inl(cdev, FSL_OFFSET_DOORBELL_POLLING);
+	doorbell_cs =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_POLLING);
 	doorbell_cs = FROM_LE32_MEM(&doorbell_cs);
 	nfp_log(NFP_DBG3, "%s: doorbell_polling is: %x", __func__, doorbell_cs);
 
@@ -305,15 +309,23 @@ static void fsl_check_complete(struct nfp_cdev *cdev, int status)
 		nfp_log(NFP_DBG3,
 			"fsl_create: clearing read/write doorbell registers");
 		TO_LE32_MEM(&clr, NFAST_INT_HOST_CLR);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_CMD, clr);
-		chk = fsl_inl(cdev, FSL_OFFSET_DOORBELL_WR_CMD);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_CMD, clr);
-		chk = fsl_inl(cdev, FSL_OFFSET_DOORBELL_RD_CMD);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_CMD,
+			 clr);
+		chk = fsl_inl(cdev, cdev->active_bar,
+			      FSL_OFFSET_DOORBELL_WR_CMD);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_CMD,
+			 clr);
+		chk = fsl_inl(cdev, cdev->active_bar,
+			      FSL_OFFSET_DOORBELL_RD_CMD);
 		TO_LE32_MEM(&clr, NFAST_INT_DEVICE_CLR);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS, clr);
-		chk = fsl_inl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS);
-		fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS, clr);
-		chk = fsl_inl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_STATUS,
+			 clr);
+		chk = fsl_inl(cdev, cdev->active_bar,
+			      FSL_OFFSET_DOORBELL_WR_STATUS);
+		fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_STATUS,
+			 clr);
+		chk = fsl_inl(cdev, cdev->active_bar,
+			      FSL_OFFSET_DOORBELL_RD_STATUS);
 	}
 
 	if (status == NFP_SUCCESS) {
@@ -359,11 +371,14 @@ static int fsl_isr(void *ctx, int *handled)
 
 	++cdev->stats.isr;
 
-	doorbell_wr = fsl_inl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS);
+	doorbell_wr =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_STATUS);
 	doorbell_wr = FROM_LE32_MEM(&doorbell_wr);
-	doorbell_rd = fsl_inl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS);
+	doorbell_rd =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_STATUS);
 	doorbell_rd = FROM_LE32_MEM(&doorbell_rd);
-	doorbell_cs = fsl_inl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS);
+	doorbell_cs =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_CS_STATUS);
 	doorbell_cs = FROM_LE32_MEM(&doorbell_cs);
 	nfp_log(NFP_DBG3, "%s: cs:= %x,rd:=%x,wr:=%x",
 		__func__, doorbell_cs, doorbell_rd, doorbell_wr);
@@ -384,7 +399,8 @@ static int fsl_isr(void *ctx, int *handled)
 				__func__, doorbell_cs);
 			*handled = 1;
 			/* clear the register*/
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_CS_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			return 0;
 		}
@@ -395,7 +411,8 @@ static int fsl_isr(void *ctx, int *handled)
 				__func__, doorbell_rd);
 			*handled = 1;
 			/* clear the register*/
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_RD_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			return 0;
 		}
@@ -405,7 +422,8 @@ static int fsl_isr(void *ctx, int *handled)
 			nfp_log(NFP_DBG1, "%s: illegal bits in doorbell_wr %x",
 				__func__, doorbell_wr);
 			/* clear the register*/
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_WR_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			*handled = 1;
 			return 0;
@@ -417,7 +435,8 @@ static int fsl_isr(void *ctx, int *handled)
 		 */
 
 		if (doorbell_wr) {
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_WR_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			cdev->stats.isr_write++;
 			nfp_write_complete(cdev->dev,
@@ -431,7 +450,8 @@ static int fsl_isr(void *ctx, int *handled)
 				0);
 
 #ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS) !=
+			if (fsl_inl(cdev, cdev->active_bar,
+				    FSL_OFFSET_DOORBELL_WR_STATUS) !=
 			    NFAST_INT_DEVICE_CLR) {
 				nfp_log(NFP_DBG1,
 					"%s: failed to clear doorbell write status",
@@ -442,7 +462,8 @@ static int fsl_isr(void *ctx, int *handled)
 		}
 
 		if (doorbell_rd) {
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_RD_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			cdev->stats.isr_read++;
 			nfp_read_complete(cdev->dev,
@@ -454,7 +475,8 @@ static int fsl_isr(void *ctx, int *handled)
 				doorbell_rd & NFAST_INT_DEVICE_READ_OK ? 1 : 0);
 
 #ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS) !=
+			if (fsl_inl(cdev, cdev->active_bar,
+				    FSL_OFFSET_DOORBELL_RD_STATUS) !=
 			    NFAST_INT_DEVICE_CLR) {
 				nfp_log(NFP_DBG1,
 					"%s: failed to clear doorbell read status",
@@ -472,7 +494,8 @@ static int fsl_isr(void *ctx, int *handled)
 		nfp_log(NFP_DBG3, "%s: doorbell_cs is: %x",
 			__func__, doorbell_cs);
 		if (doorbell_cs) {
-			fsl_outl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS,
+			fsl_outl(cdev, cdev->active_bar,
+				 FSL_OFFSET_DOORBELL_CS_STATUS,
 				 NFAST_INT_DEVICE_CLR);
 			fsl_check_complete(cdev,
 					   doorbell_cs &
@@ -487,7 +510,8 @@ static int fsl_isr(void *ctx, int *handled)
 					NFP_ESTARTING);
 
 #ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS) !=
+			if (fsl_inl(cdev, cdev->active_bar,
+				    FSL_OFFSET_DOORBELL_CS_STATUS) !=
 			    NFAST_INT_DEVICE_CLR) {
 				nfp_log(NFP_DBG1,
 					"%s: warning: failed to clear doorbell check status",
@@ -497,11 +521,14 @@ static int fsl_isr(void *ctx, int *handled)
 #endif
 		}
 
-		doorbell_wr = fsl_inl(cdev, FSL_OFFSET_DOORBELL_WR_STATUS);
+		doorbell_wr = fsl_inl(cdev, cdev->active_bar,
+				      FSL_OFFSET_DOORBELL_WR_STATUS);
 		doorbell_wr = FROM_LE32_MEM(&doorbell_wr);
-		doorbell_rd = fsl_inl(cdev, FSL_OFFSET_DOORBELL_RD_STATUS);
+		doorbell_rd = fsl_inl(cdev, cdev->active_bar,
+				      FSL_OFFSET_DOORBELL_RD_STATUS);
 		doorbell_rd = FROM_LE32_MEM(&doorbell_rd);
-		doorbell_cs = fsl_inl(cdev, FSL_OFFSET_DOORBELL_CS_STATUS);
+		doorbell_cs = fsl_inl(cdev, cdev->active_bar,
+				      FSL_OFFSET_DOORBELL_CS_STATUS);
 		doorbell_cs = FROM_LE32_MEM(&doorbell_cs);
 
 		nfp_log(NFP_DBG3, "%s: cs status in isr is: %x",
@@ -627,7 +654,8 @@ static int fsl_set_control(const struct nfdev_control_str *control, void *ctx)
 	 */
 
 	TO_LE32_MEM(&control_data, control->control);
-	fsl_outl(cdev, FSL_OFFSET_REGISTER_CONTROL, control_data);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_REGISTER_CONTROL,
+		 control_data);
 
 	return NFP_SUCCESS;
 }
@@ -668,10 +696,13 @@ static int fsl_get_status(struct nfdev_status_str *status, void *ctx)
 	 * with the firmware)
 	 */
 
-	status_data = fsl_inl(cdev, FSL_OFFSET_REGISTER_STATUS);
+	status_data =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_REGISTER_STATUS);
 	status->status = FROM_LE32_MEM(&status_data);
-	error[0] = fsl_inl(cdev, FSL_OFFSET_REGISTER_ERROR_LO);
-	error[1] = fsl_inl(cdev, FSL_OFFSET_REGISTER_ERROR_HI);
+	error[0] =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_REGISTER_ERROR_LO);
+	error[1] =
+		fsl_inl(cdev, cdev->active_bar, FSL_OFFSET_REGISTER_ERROR_HI);
 
 	return NFP_SUCCESS;
 }
@@ -756,7 +787,7 @@ static int fsl_ensure_reading(unsigned int addr, int len, void *ctx,
 	/* trigger read request */
 
 	TO_LE32_MEM(&tmp32, NFAST_INT_HOST_READ_REQUEST);
-	fsl_outl(cdev, FSL_OFFSET_DOORBELL_RD_CMD, tmp32);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_RD_CMD, tmp32);
 
 	cdev->stats.ensure++;
 
@@ -965,7 +996,7 @@ static int fsl_write(unsigned int addr, char const *block, int len,
 	/* trigger write */
 
 	TO_LE32_MEM(&tmp32, NFAST_INT_HOST_WRITE_REQUEST);
-	fsl_outl(cdev, FSL_OFFSET_DOORBELL_WR_CMD, tmp32);
+	fsl_outl(cdev, cdev->active_bar, FSL_OFFSET_DOORBELL_WR_CMD, tmp32);
 
 	cdev->stats.write_block++;
 	cdev->stats.write_byte += len;
