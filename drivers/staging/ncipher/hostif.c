@@ -1305,10 +1305,8 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 {
 	int i;
 	unsigned int bar[6];
-
 	const struct nfpcmd_dev *nfp_drvlist[] = { &i21555_cmddev,
 						   &fsl_t1022_cmddev, NULL };
-
 	const struct nfpcmd_dev *cmddev = nfp_drvlist[id->driver_data];
 	unsigned long iosize;
 	unsigned int irq_line;

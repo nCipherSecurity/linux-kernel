@@ -16,35 +16,35 @@
 
 /* Result of the ENQUIRY ioctl. */
 struct nfdev_enquiry_str {
-	u32 busno; /**< Which bus is the PCI device on. */
-	unsigned char slotno; /**< Which slot is the PCI device in. */
-	unsigned char reserved[3]; /**< for consistent struct alignment */
+	__u32 busno; /**< Which bus is the PCI device on. */
+	__u8 slotno; /**< Which slot is the PCI device in. */
+	__u8 reserved[3]; /**< for consistent struct alignment */
 };
 
 /* Result of the STATS ioctl. */
 struct nfdev_stats_str {
-	u32 isr; /**< Count interrupts. */
-	u32 isr_read; /**< Count read interrupts. */
-	u32 isr_write; /**< Count write interrupts. */
-	u32 write_fail; /**< Count write failures. */
-	u32 write_block; /**< Count blocks written. */
-	u32 write_byte; /**< Count bytes written. */
-	u32 read_fail; /**< Count read failures. */
-	u32 read_block; /**< Count blocks read. */
-	u32 read_byte; /**< Count bytes read. */
-	u32 ensure_fail; /**< Count read request failures. */
-	u32 ensure; /**< Count read requests. */
+	__u32 isr; /**< Count interrupts. */
+	__u32 isr_read; /**< Count read interrupts. */
+	__u32 isr_write; /**< Count write interrupts. */
+	__u32 write_fail; /**< Count write failures. */
+	__u32 write_block; /**< Count blocks written. */
+	__u32 write_byte; /**< Count bytes written. */
+	__u32 read_fail; /**< Count read failures. */
+	__u32 read_block; /**< Count blocks read. */
+	__u32 read_byte; /**< Count bytes read. */
+	__u32 ensure_fail; /**< Count read request failures. */
+	__u32 ensure; /**< Count read requests. */
 };
 
 /* Result of the STATUS ioctl. */
 struct nfdev_status_str {
-	u32 status; /**< Status flags. */
+	__u32 status; /**< Status flags. */
 	char error[8]; /**< Error string. */
 };
 
 /* Input to the CONTROL ioctl. */
 struct nfdev_control_str {
-	u32 control; /**< Control flags. */
+	__u32 control; /**< Control flags. */
 };
 
 /** Index of control bits indicating desired mode
