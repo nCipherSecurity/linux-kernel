@@ -22,7 +22,7 @@ void nfp_sleep(int ms)
 	finish_wait(&q, &wait);
 }
 
-int nfp_config_inl(struct nfp_dev *ndev, int offset, unsigned int *res)
+int nfp_config_inl(struct nfp_dev *ndev, int offset, u32 *res)
 {
 	if (!ndev || !ndev->pcidev)
 		return NFP_ENODEV;
@@ -83,26 +83,26 @@ int nfp_copy_to_dev(struct nfp_dev *ndev, int bar,
 /* pci fixed length accessors. The below functions are used predominantly
  * to access CSR registers in pci memory space.
  */
-unsigned int nfp_inl(struct nfp_dev *ndev, int bar, int offset)
+u32 nfp_inl(struct nfp_dev *ndev, int bar, int offset)
 {
 	nfp_log(NFP_DBG3, "%s: addr %p", __func__, ndev->bar[bar] + offset);
 	return ioread32(ndev->bar[bar] + offset);
 }
 
-unsigned short nfp_inw(struct nfp_dev *ndev, int bar, int offset)
+u16 nfp_inw(struct nfp_dev *ndev, int bar, int offset)
 {
 	nfp_log(NFP_DBG3, "%s: addr %p", __func__, ndev->bar[bar] + offset);
 	return ioread16(ndev->bar[bar] + offset);
 }
 
-void nfp_outl(struct nfp_dev *ndev, int bar, int offset, unsigned int data)
+void nfp_outl(struct nfp_dev *ndev, int bar, int offset, u32 data)
 {
 	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
 		ndev->bar[bar] + offset, data);
 	iowrite32(data, ndev->bar[bar] + offset);
 }
 
-void nfp_outw(struct nfp_dev *ndev, int bar, int offset, unsigned short data)
+void nfp_outw(struct nfp_dev *ndev, int bar, int offset, u16 data)
 {
 	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
 		ndev->bar[bar] + offset, data);

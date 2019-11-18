@@ -17,9 +17,9 @@
 
 static int i21555_started(struct nfp_dev *ndev)
 {
-	unsigned int tmp32;
+	u32 tmp32;
 #ifdef CONFIGSPACE_DEBUG
-	unsigned int reg32[64];
+	u32 reg32[64];
 	int i;
 #endif
 	int ne;
@@ -66,7 +66,7 @@ static int i21555_started(struct nfp_dev *ndev)
 
 static int i21555_create(struct nfp_dev *ndev)
 {
-	unsigned int tmp32;
+	u32 tmp32;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
@@ -89,7 +89,7 @@ static int i21555_create(struct nfp_dev *ndev)
 static int i21555_destroy(void *ctx)
 {
 	struct nfp_dev *ndev;
-	unsigned int tmp32;
+	u32 tmp32;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
@@ -132,8 +132,8 @@ static int i21555_close(void *ctx)
 static int i21555_isr(void *ctx, int *handled)
 {
 	struct nfp_dev *ndev;
-	unsigned short doorbell;
-	unsigned short tmp16;
+	u16 doorbell;
+	u16 tmp16;
 
 	nfp_log(NFP_DBG3, "%s: entered", __func__);
 
@@ -211,14 +211,13 @@ static int i21555_isr(void *ctx, int *handled)
 
 /* write ------------------------------------------------------- */
 
-static int i21555_write(unsigned int addr, const char *block, int len,
-			void *ctx)
+static int i21555_write(u32 addr, const char *block, int len, void *ctx)
 {
 	struct nfp_dev *ndev;
-	unsigned int hdr[2];
+	u32 hdr[2];
 	int ne;
-	unsigned short tmp16;
-	unsigned int tmp32;
+	u16 tmp16;
+	u32 tmp32;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
@@ -357,13 +356,12 @@ static int i21555_chupdate(char *data, int len, void *ctx)
 
 /* ensure reading -------------------------------------------------- */
 
-static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
-				 int lock_flag)
+static int i21555_ensure_reading(u32 addr, int len, void *ctx, int lock_flag)
 {
 	struct nfp_dev *ndev;
-	unsigned int hdr[3];
-	unsigned short tmp16;
-	unsigned int tmp32;
+	u32 hdr[3];
+	u16 tmp16;
+	u32 tmp32;
 	int ne;
 	int hdr_len;
 

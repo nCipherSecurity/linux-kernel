@@ -86,8 +86,7 @@
  * @param offset offset in bytes from base address.
  * @param value 32 bit value being written.
  */
-static inline void fsl_outl(struct nfp_dev *ndev, int offset,
-			    unsigned int value)
+static inline void fsl_outl(struct nfp_dev *ndev, int offset, u32 value)
 {
 	iowrite32(value, ndev->bar[ndev->active_bar] +
 		  FSL_DOORBELL_LOCATION + offset);

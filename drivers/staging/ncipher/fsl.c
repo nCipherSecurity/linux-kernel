@@ -82,7 +82,7 @@ static int fsl_create(struct nfp_dev *ndev)
 static int fsl_destroy(void *ctx)
 {
 	struct nfp_dev *ndev;
-	unsigned int tmp32;
+	u32 tmp32;
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
 
@@ -678,8 +678,7 @@ static int fsl_get_status(struct nfdev_status_str *status, void *ctx)
  * @returns NFP_SUCCESS if read initiated, NFP_ESTARTING if device not ready,
  * or other value if error.
  */
-static int fsl_ensure_reading(unsigned int addr, int len, void *ctx,
-			      int lock_flag)
+static int fsl_ensure_reading(u32 addr, int len, void *ctx, int lock_flag)
 {
 	struct nfp_dev *ndev;
 	u32 hdr[3];
@@ -839,13 +838,12 @@ static int fsl_read(char *block, int len, void *ctx, int *rcnt)
  * @returns NFP_SUCCESS if write successful, NFP_ESTARTING if device not
  * ready, or other value if error.
  */
-static int fsl_write(unsigned int addr, char const *block, int len,
-		     void *ctx)
+static int fsl_write(u32 addr, char const *block, int len, void *ctx)
 {
 	struct nfp_dev *ndev;
-	unsigned int hdr[3];
+	u32 hdr[3];
 	int ne;
-	unsigned int tmp32;
+	u32 tmp32;
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
 
