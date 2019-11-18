@@ -11,17 +11,12 @@
 #include <linux/kernel.h>
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
-#ifdef MODVERSIONS
-#include <linux/modversions.h>
-#endif
 #include <linux/bitops.h>
 
 #include "osif.h"
 #include "pci.h"
 #include "i21555.h"
 #include "fsl.h"
-
-#define NF_smp_mb__before_atomic smp_mb__before_atomic
 
 /* device list --------------------------------------------------- */
 
@@ -158,7 +153,8 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 		__func__,
 		ok ? "" : "not ");
 
-	NF_smp_mb__before_atomic();
+	/* make sure that write is complete before we clear wr_outstanding */
+	smp_mb__before_atomic();
 	clear_bit(CMPLT_BIT, &ndev->wr_outstanding);
 	clear_bit(WAIT_BIT, &ndev->wr_outstanding);
 
@@ -191,7 +187,6 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 	int nbytes;
 	int minor;
 	int ne;
-	(void)off;
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
 
@@ -234,7 +229,7 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 		nfp_log(NFP_DBG3, "%s: copying %lu bytes to dma buffer",
 			__func__, count);
 		addr = ndev->write_dma;
-		TO_LE32_MEM(&nbytes, count);
+		nbytes = cpu_to_le32(count);
 		*(unsigned int *)(ndev->write_buf + NFP_DMA_NBYTES_OFFSET) =
 			nbytes;
 		if (0 !=
@@ -248,7 +243,7 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 		}
 	}
 
-	ne = ndev->cmddev->write_block(addr, buf, count, ndev->common.cmdctx);
+	ne = ndev->cmddev->write_block(addr, buf, count, ndev->cmdctx);
 	if (ne != NFP_SUCCESS) {
 		nfp_write_complete(ndev, 0);
 		if (ne != NFP_ESTARTING)
@@ -317,7 +312,8 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 		__func__,
 		ok ? "" : "not ");
 
-	NF_smp_mb__before_atomic();
+	/* make sure that rd_ready is set before we clear rd_outstanding */
+	smp_mb__before_atomic();
 	clear_bit(CMPLT_BIT, &ndev->rd_outstanding);
 	clear_bit(WAIT_BIT, &ndev->rd_outstanding);
 
@@ -364,7 +360,6 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	int nbytes;
 	int minor;
 	int ne;
-	(void)off;
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
 
@@ -417,7 +412,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	if (ndev->ifvers >= NFDEV_IF_PCI_PUSH) {
 		nbytes = *(unsigned int *)(ndev->read_buf +
 					   NFP_DMA_NBYTES_OFFSET);
-		nbytes = FROM_LE32_MEM(&nbytes);
+		nbytes = le32_to_cpu(nbytes);
 		nfp_log(NFP_DBG3, "%s: nbytes %d", __func__, nbytes);
 		if (nbytes < 0 || nbytes > count) {
 			nfp_log(NFP_DBG1,
@@ -434,7 +429,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 		}
 	} else {
 		nbytes = 0;
-		ne = ndev->cmddev->read_block(buf, count, ndev->common.cmdctx,
+		ne = ndev->cmddev->read_block(buf, count, ndev->cmdctx,
 					      (void *)&nbytes);
 		if (ne != NFP_SUCCESS) {
 			nfp_log(NFP_DBG1, "%s: device read failed", __func__);
@@ -461,9 +456,8 @@ int nfp_alloc_pci_push(struct nfp_dev *ndev)
 	 */
 	if (!ndev->read_buf) {
 		ndev->read_buf =
-			kmalloc(NFP_READBUF_SIZE, GFP_KERNEL | GFP_DMA);
+			kzalloc(NFP_READBUF_SIZE, GFP_KERNEL | GFP_DMA);
 		if (ndev->read_buf) {
-			memset(ndev->read_buf, 0, NFP_READBUF_SIZE);
 			ndev->read_dma =
 				dma_map_single(&ndev->pcidev->dev,
 					       ndev->read_buf, NFP_READBUF_SIZE,
@@ -489,9 +483,8 @@ int nfp_alloc_pci_pull(struct nfp_dev *ndev)
 	 */
 	if (!ndev->write_buf) {
 		ndev->write_buf =
-			kmalloc(NFP_WRITEBUF_SIZE, GFP_KERNEL | GFP_DMA);
+			kzalloc(NFP_WRITEBUF_SIZE, GFP_KERNEL | GFP_DMA);
 		if (ndev->write_buf) {
-			memset(ndev->write_buf, 0, NFP_WRITEBUF_SIZE);
 			ndev->write_dma = dma_map_single(&ndev->pcidev->dev,
 							 ndev->write_buf,
 							 NFP_WRITEBUF_SIZE,
@@ -641,11 +634,11 @@ static int nfp_ioctl(struct inode *inode,
 		int err = -EIO;
 
 		nfp_log(NFP_DBG4, "%s: enquiry", __func__);
-		enq_data.busno = ndev->common.busno;
-		enq_data.slotno = ndev->common.slotno;
+		enq_data.busno = ndev->busno;
+		enq_data.slotno = ndev->slotno;
 		if ((void *)arg) {
-			COPY_TO_USER((void *)arg, &enq_data, sizeof(enq_data),
-				     err);
+			err = copy_to_user((void *)arg, &enq_data,
+					   sizeof(enq_data)) ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: copy to user space failed.",
@@ -668,8 +661,9 @@ static int nfp_ioctl(struct inode *inode,
 
 		/* get and check max length */
 		if ((void *)arg) {
-			COPY_FROM_USER((void *)&len, (void *)arg,
-				       sizeof(unsigned int), err);
+			err = copy_from_user((void *)&len, (void *)arg,
+					     sizeof(unsigned int))
+					     ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: ensure reading: copy from user space failed.",
@@ -728,7 +722,7 @@ static int nfp_ioctl(struct inode *inode,
 			ndev->ifvers, addr);
 
 		ne = ndev->cmddev->ensure_reading(addr, len,
-						  ndev->common.cmdctx, 1);
+						  ndev->cmdctx, 1);
 
 		if (ne != NFP_SUCCESS) {
 			nfp_log(NFP_DBG1,
@@ -738,7 +732,7 @@ static int nfp_ioctl(struct inode *inode,
 			/* make sure that del_timer_sync is done before
 			 * we clear rd_outstanding
 			 */
-			NF_smp_mb__before_atomic();
+			smp_mb__before_atomic();
 			clear_bit(WAIT_BIT, &ndev->rd_outstanding);
 			return -EIO;
 		}
@@ -749,7 +743,8 @@ static int nfp_ioctl(struct inode *inode,
 
 		nfp_log(NFP_DBG4, "%s: set ifvers", __func__);
 		if ((void *)arg) {
-			COPY_FROM_USER(&vers, (void *)arg, sizeof(vers), err);
+			err = copy_from_user(&vers, (void *)arg,
+					     sizeof(vers)) ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: set ifvers: copy from user space failed.",
@@ -782,7 +777,8 @@ static int nfp_ioctl(struct inode *inode,
 
 		nfp_log(NFP_DBG4, "%s: debug", __func__);
 		if ((void *)arg) {
-			COPY_FROM_USER(&num, (void *)arg, sizeof(num), err);
+			err = copy_from_user(&num, (void *)arg,
+					     sizeof(num)) ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: debug: copy from user space failed.",
@@ -796,7 +792,7 @@ static int nfp_ioctl(struct inode *inode,
 		}
 		if (ndev->cmddev->debug)
 			return nfp_oserr(ndev->cmddev->debug(num,
-					 ndev->common.cmdctx));
+					 ndev->cmdctx));
 
 		return -EINVAL;
 	} break;
@@ -806,8 +802,9 @@ static int nfp_ioctl(struct inode *inode,
 
 		nfp_log(NFP_DBG4, "%s: stats", __func__);
 		if ((void *)arg) {
-			COPY_TO_USER((void *)arg, &ndev->common.stats,
-				     sizeof(struct nfdev_stats_str), err);
+			err = copy_to_user((void *)arg, &ndev->stats,
+					   sizeof(struct nfdev_stats_str))
+					   ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: stats: copy to user space failed.",
@@ -827,8 +824,8 @@ static int nfp_ioctl(struct inode *inode,
 
 		nfp_log(NFP_DBG4, "%s: control", __func__);
 		if ((void *)arg) {
-			COPY_FROM_USER(&control, (void *)arg, sizeof(control),
-				       err);
+			err = copy_from_user(&control, (void *)arg,
+					     sizeof(control)) ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: control: copy from user space failed.",
@@ -852,7 +849,7 @@ static int nfp_ioctl(struct inode *inode,
 			control);
 
 		return nfp_oserr(ndev->cmddev->setcontrol(&control,
-							  ndev->common.cmdctx));
+							  ndev->cmdctx));
 	} break;
 
 	case NFDEV_IOCTL_STATUS: {
@@ -868,13 +865,14 @@ static int nfp_ioctl(struct inode *inode,
 			return -EINVAL;
 		}
 		err = ndev->cmddev->getstatus(&status,
-					      ndev->common.cmdctx);
+					      ndev->cmdctx);
 
 		if (err)
 			return nfp_oserr(err);
 
 		if ((void *)arg) {
-			COPY_TO_USER((void *)arg, &status, sizeof(status), err);
+			err = copy_to_user((void *)arg, &status, sizeof(status))
+					   ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
 					"%s: status: copy from user space failed.",
@@ -953,7 +951,7 @@ static irqreturn_t nfp_isr(int irq, void *context)
 		return IRQ_NONE;
 	}
 
-	ne = ndev->cmddev->isr(ndev->common.cmdctx, &handled);
+	ne = ndev->cmddev->isr(ndev->cmdctx, &handled);
 
 	if (ne)
 		nfp_log(NFP_DBG1, "%s: cmddev isr failed (%d)",
@@ -1024,7 +1022,7 @@ static int nfp_open(struct inode *inode, struct file *file)
 
 	/* open device */
 
-	ne = ndev->cmddev->open(ndev->common.cmdctx);
+	ne = ndev->cmddev->open(ndev->cmdctx);
 	if (ne != NFP_SUCCESS) {
 		nfp_log(NFP_DBG1, "%s: device open failed: error %d",
 			__func__,
@@ -1102,7 +1100,7 @@ static int nfp_release(struct inode *node, struct file *file)
 		/* make sure that del_timer_sync is done before
 		 * we clear rd_outstanding
 		 */
-		NF_smp_mb__before_atomic();
+		smp_mb__before_atomic();
 		clear_bit(WAIT_BIT, &ndev->rd_outstanding);
 	}
 	ndev->busy = 0;
@@ -1110,7 +1108,7 @@ static int nfp_release(struct inode *node, struct file *file)
 
 	/* close device */
 
-	ne = ndev->cmddev->close(ndev->common.cmdctx);
+	ne = ndev->cmddev->close(ndev->cmdctx);
 	if (ne != NFP_SUCCESS) {
 		nfp_log(NFP_DBG1, "%s: device close failed", __func__);
 		return nfp_oserr(ne);
@@ -1122,14 +1120,13 @@ static int nfp_release(struct inode *node, struct file *file)
 /**
  * NSHIELD SOLO character device file operations table.
  */
-static const struct file_operations nfp_fops = {
-owner: THIS_MODULE,
-poll : nfp_poll,
-write : nfp_write,
-read : nfp_read,
-unlocked_ioctl : nfp_unlocked_ioctl,
-open : nfp_open,
-release : nfp_release,
+static const struct file_operations nfp_fops = { owner: THIS_MODULE,
+	poll : nfp_poll,
+	write : nfp_write,
+	read : nfp_read,
+	unlocked_ioctl : nfp_unlocked_ioctl,
+	open : nfp_open,
+	release : nfp_release,
 };
 
 /**
@@ -1156,7 +1153,7 @@ static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 			free_irq(ndev->irq, ndev);
 		}
 		for (i = 0; i < 6; i++)
-			if (ndev->common.bar[i]) {
+			if (ndev->bar[i]) {
 				nfp_log(NFP_DBG3,
 					"%s: freeing MEM BAR, %d",
 					__func__, i);
@@ -1164,7 +1161,7 @@ static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 								      i),
 						   pci_resource_len(pci_dev,
 								    i));
-				iounmap(ndev->common.bar[i]);
+				iounmap(ndev->bar[i]);
 			}
 		nfp_log(NFP_DBG3, "%s: freeing ndev", __func__);
 		kfree(ndev);
@@ -1188,18 +1185,17 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 		goto fail_continue;
 	}
 
-	ndev = kmalloc(sizeof(*ndev), GFP_KERNEL);
+	ndev = kzalloc(sizeof(*ndev), GFP_KERNEL);
 	if (!ndev) {
 		nfp_log(NFP_DBG1,
 			"%s: failed to allocate device structure.", __func__);
 		goto fail_continue;
 	}
 	nfp_log(NFP_DBG2, "%s: allocated device structure.", __func__);
-	memset(ndev, 0, sizeof(*ndev));
 
-	ndev->common.busno = bus;
+	ndev->busno = bus;
 	ndev->pcidev = pcidev;
-	ndev->common.slotno = slot;
+	ndev->slotno = slot;
 	ndev->cmddev = cmddev;
 
 	for (i = 0; i < 6; i++) {
@@ -1220,14 +1216,14 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 			}
 
 			if (bar_flags & PCI_BASE_ADDRESS_SPACE_PREFETCHABLE) {
-				ndev->common.bar[i] =
+				ndev->bar[i] =
 					ioremap(bar[i], map_bar_size);
 			} else {
-				ndev->common.bar[i] =
+				ndev->bar[i] =
 					ioremap_nocache(bar[i], map_bar_size);
 			}
 
-			if (!ndev->common.bar[i]) {
+			if (!ndev->bar[i]) {
 				nfp_log(NFP_DBG1,
 					"%s: unable to map memory BAR %d, (0x%x).",
 					__func__,
@@ -1244,14 +1240,13 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 
 	ndev->spinlock = __SPIN_LOCK_UNLOCKED(ndev->spinlock);
 
-	ne = ndev->cmddev->create(&ndev->common);
+	ne = ndev->cmddev->create(ndev);
 	if (ne != NFP_SUCCESS) {
 		nfp_log(NFP_DBG1,
 			"%s: failed to create command device (%d)", __func__,
 			nfp_oserr(ne));
 		goto fail_continue;
 	}
-	ndev->common.dev = ndev;
 
 	if (request_irq(irq_line, nfp_isr, IRQF_SHARED, cmddev->name, ndev)) {
 		nfp_log(NFP_DBG1, "%s: unable to claim interrupt.", __func__);
@@ -1259,7 +1254,7 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 	}
 	ndev->irq = irq_line;
 
-	memset(&ndev->common.stats, 0, sizeof(ndev->common.stats));
+	memset(&ndev->stats, 0, sizeof(ndev->stats));
 
 	pci_set_drvdata(pcidev, ndev);
 
@@ -1428,7 +1423,7 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 	/* destroy common device */
 
 	if (ndev->cmddev)
-		ndev->cmddev->destroy(ndev->common.cmdctx);
+		ndev->cmddev->destroy(ndev->cmdctx);
 
 	nfp_dev_destroy(ndev, pcidev);
 

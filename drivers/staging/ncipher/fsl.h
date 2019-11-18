@@ -81,29 +81,29 @@
 /**
  * Writes a 32 bit word across PCI to the FSL card.
  *
- * @param cdev command device.
+ * @param ndev command device.
  * @param bar base address region id.
  * @param offset offset in bytes from base address.
  * @param value 32 bit value being written.
  */
-static inline void fsl_outl(struct nfp_cdev *cdev, int offset,
+static inline void fsl_outl(struct nfp_dev *ndev, int offset,
 			    unsigned int value)
 {
-	iowrite32(value, cdev->bar[cdev->active_bar] +
+	iowrite32(value, ndev->bar[ndev->active_bar] +
 		  FSL_DOORBELL_LOCATION + offset);
 }
 
 /**
  * Reads a 32 bit word across PCI from the FSL card.
  *
- * @param cdev command device.
+ * @param ndev command device.
  * @param bar base address region id.
  * @param offset offset in bytes from base address.
  * @returns 32 bit value.
  */
-static inline uint32_t fsl_inl(struct nfp_cdev *cdev, int offset)
+static inline uint32_t fsl_inl(struct nfp_dev *ndev, int offset)
 {
-	return ioread32(cdev->bar[cdev->active_bar] + FSL_DOORBELL_LOCATION +
+	return ioread32(ndev->bar[ndev->active_bar] + FSL_DOORBELL_LOCATION +
 			offset);
 }
 

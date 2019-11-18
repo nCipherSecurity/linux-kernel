@@ -29,19 +29,9 @@
 
 #define FROM_LE32_CONFIG(x) (*(x))
 
-#define TO_LE16_MEM(x, y) (*(x) = (y))
-#define FROM_LE16_MEM(x) (*(x))
-
-#define TO_LE32_MEM(x, y) (*(x) = (y))
-#define FROM_LE32_MEM(x) (*(x))
-
 #define VERSION(ver, rel, seq) (((ver) << 16) | ((rel) << 8) | (seq))
 #define NFP_MAJOR 176 /* "nCipher nFast PCI crypto accelerator" */
 
-#define COPY_FROM_USER(DST, SRC, LEN, error)                                   \
-	(error = copy_from_user(DST, SRC, LEN) ? -EFAULT : 0)
-#define COPY_TO_USER(DST, SRC, LEN, error)                                     \
-	(error = copy_to_user(DST, SRC, LEN) ? -EFAULT : 0)
 #define INODE_FROM_FILE(file) ((file)->f_path.dentry->d_inode)
 
 #define NFP_TIMEOUT ((NFP_TIMEOUT_SEC) * HZ)
@@ -52,68 +42,25 @@
 #define WAIT_BIT  0 /* waiting for data */
 #define CMPLT_BIT 1 /* completing a read (got data or timing out) */
 
-struct nfp_dev;
-
-/* common device structure */
-struct nfp_cdev {
+/* per-instance device structure */
+struct nfp_dev {
+	/* downward facing part of the device interface */
 	unsigned char *bar[NFP_BARSIZES_COUNT];
 	void *extra[NFP_BARSIZES_COUNT];
-
 	int busno;
 	int slotno;
-
 	void *cmdctx;
-
 	char *iobuf;
-
-	struct nfp_dev *dev;
-
-	struct nfdev_stats_str stats;
 	int active_bar;
 	int created;
 	int conn_status;
 	int detection_type;
-};
-
-/* Per-device-type command handlers */
-struct nfpcmd_dev {
-	const char *name;
-	unsigned short vendorid, deviceid, sub_vendorid, sub_deviceid;
-	unsigned int bar_sizes[NFP_BARSIZES_COUNT]; /* includes IO bit */
-	unsigned int flags, max_ifvers;
-
-	int (*create)(struct nfp_cdev *cdev);
-	int (*destroy)(void *ctx);
-	int (*started)(struct nfp_cdev *cdev, int lock_flag);
-	int (*stopped)(struct nfp_cdev *cdev);
-	int (*open)(void *ctx);
-	int (*close)(void *ctx);
-	int (*isr)(void *ctx, int *handled);
-	int (*write_block)(unsigned int addr, const char *ublock, int len,
-			   void *ctx);
-	int (*read_block)(char *ublock, int len, void *ctx, int *rcount);
-	int (*channel_update)(char *data, int len, void *ctx);
-	int (*ensure_reading)(unsigned int addr, int len, void *ctx,
-			      int lock_flag);
-	int (*debug)(int cmd, void *ctx);
-	int (*setcontrol)(const struct nfdev_control_str *control,
-			  void *ctx); /* may be NULL */
-	int (*getstatus)(struct nfdev_status_str *status,
-			 void *ctx); /* may be NULL */
-};
-
-/* per-instance device structure */
-struct nfp_dev {
-	struct list_head list;
-
-	struct nfpcmd_dev const *cmddev;
-
-	struct nfp_cdev common;
-
 	int iosize[6];
-
 	unsigned int irq;
+	struct nfpcmd_dev const *cmddev;
+	struct nfdev_stats_str stats;
 
+	/* upward facing part of the device interface */
 	unsigned char *read_buf;
 	dma_addr_t read_dma;
 
@@ -137,6 +84,33 @@ struct nfp_dev {
 	int wr_ok;
 
 	spinlock_t spinlock; /* protect this struct */
+};
+
+/* Per-device-type command handlers */
+struct nfpcmd_dev {
+	const char *name;
+	unsigned short vendorid, deviceid, sub_vendorid, sub_deviceid;
+	unsigned int bar_sizes[NFP_BARSIZES_COUNT]; /* includes IO bit */
+	unsigned int flags, max_ifvers;
+
+	int (*create)(struct nfp_dev *ndev);
+	int (*destroy)(void *ctx);
+	int (*started)(struct nfp_dev *ndev, int lock_flag);
+	int (*stopped)(struct nfp_dev *ndev);
+	int (*open)(void *ctx);
+	int (*close)(void *ctx);
+	int (*isr)(void *ctx, int *handled);
+	int (*write_block)(unsigned int addr, const char *ublock, int len,
+			   void *ctx);
+	int (*read_block)(char *ublock, int len, void *ctx, int *rcount);
+	int (*channel_update)(char *data, int len, void *ctx);
+	int (*ensure_reading)(unsigned int addr, int len, void *ctx,
+			      int lock_flag);
+	int (*debug)(int cmd, void *ctx);
+	int (*setcontrol)(const struct nfdev_control_str *control,
+			  void *ctx); /* may be NULL */
+	int (*getstatus)(struct nfdev_status_str *status,
+			 void *ctx); /* may be NULL */
 };
 
 #define NFP_CMD_FLG_NEED_IOBUF 0x1
@@ -171,8 +145,8 @@ extern const struct nfpcmd_dev fsl_t1022_cmddev;
 
 /* callbacks from command drivers -------------------------------------- */
 
-void nfp_read_complete(struct nfp_dev *pdev, int ok);
-void nfp_write_complete(struct nfp_dev *pdev, int ok);
+void nfp_read_complete(struct nfp_dev *ndev, int ok);
+void nfp_write_complete(struct nfp_dev *ndev, int ok);
 
 #define NFP_READ_MAX (8 * 1024)
 #define NFP_WRITE_MAX (8 * 1024)
@@ -207,31 +181,31 @@ void nfp_sleep(int ms);
 /* config space access ------------------------------------------------ */
 
 /* return Little Endian 32 bit config register */
-int nfp_config_inl(struct nfp_cdev *pdev, int offset, unsigned int *res);
+int nfp_config_inl(struct nfp_dev *pdev, int offset, unsigned int *res);
 
 /* io space access ------------------------------------------------ */
 
-unsigned int nfp_inl(struct nfp_cdev *pdev, int bar, int offset);
-unsigned short nfp_inw(struct nfp_cdev *pdev, int bar, int offset);
-void nfp_outl(struct nfp_cdev *pdev, int bar, int offset, unsigned int data);
-void nfp_outw(struct nfp_cdev *pdev, int bar, int offset, unsigned short data);
+unsigned int nfp_inl(struct nfp_dev *pdev, int bar, int offset);
+unsigned short nfp_inw(struct nfp_dev *pdev, int bar, int offset);
+void nfp_outl(struct nfp_dev *pdev, int bar, int offset, unsigned int data);
+void nfp_outw(struct nfp_dev *pdev, int bar, int offset, unsigned short data);
 
 /* user and device memory space access ---------------------------- */
 
 /*
  * NB these 2 functions are not guaranteed to be re-entrant for a given device
  */
-int nfp_copy_from_user_to_dev(struct nfp_cdev *cdev, int bar, int offset,
+int nfp_copy_from_user_to_dev(struct nfp_dev *ndev, int bar, int offset,
 			      const char *ubuf, int len);
-int nfp_copy_to_user_from_dev(struct nfp_cdev *cdev, int bar, int offset,
+int nfp_copy_to_user_from_dev(struct nfp_dev *ndev, int bar, int offset,
 			      char *ubuf, int len);
 
 int nfp_copy_from_user(char *kbuf, const char *ubuf, int len);
 int nfp_copy_to_user(char *ubuf, const char *kbuf, int len);
 
-int nfp_copy_from_dev(struct nfp_cdev *cdev, int bar, int offset,
+int nfp_copy_from_dev(struct nfp_dev *ndev, int bar, int offset,
 		      char *kbuf, int len);
-int nfp_copy_to_dev(struct nfp_cdev *cdev, int bar, int offset,
+int nfp_copy_to_dev(struct nfp_dev *ndev, int bar, int offset,
 		    const char *kbuf, int len);
 
 /* debug ------------------------------------------------------------ */

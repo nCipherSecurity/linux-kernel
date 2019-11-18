@@ -15,7 +15,7 @@
  * the i21555 has master enabled on its secondary interface
  */
 
-static int i21555_started(struct nfp_cdev *pdev)
+static int i21555_started(struct nfp_dev *ndev)
 {
 	unsigned int tmp32;
 #ifdef CONFIGSPACE_DEBUG
@@ -29,7 +29,7 @@ static int i21555_started(struct nfp_cdev *pdev)
 #ifdef CONFIGSPACE_DEBUG
 	/* Suck up all the registers */
 	for (i = 0; i < 64; i++)
-		ne = nfp_config_inl(pdev, i * 4, &reg32[i]);
+		ne = nfp_config_inl(ndev, i * 4, &reg32[i]);
 
 	for (i = 0; i < 16; i++) {
 		int j = i * 4;
@@ -40,7 +40,7 @@ static int i21555_started(struct nfp_cdev *pdev)
 	}
 #endif
 
-	ne = nfp_config_inl(pdev, I21555_CFG_SEC_CMD_STATUS, &tmp32);
+	ne = nfp_config_inl(ndev, I21555_CFG_SEC_CMD_STATUS, &tmp32);
 	if (ne) {
 		/* succeed if PCI config reads are not implemented */
 		if (ne == NFP_EUNKNOWN)
@@ -49,7 +49,7 @@ static int i21555_started(struct nfp_cdev *pdev)
 		return ne;
 	}
 
-	tmp32 = FROM_LE32_CONFIG(&tmp32) & 0xffff;
+	tmp32 = le32_to_cpu(tmp32) & 0xffff;
 
 	ne = NFP_SUCCESS;
 	if (tmp32 & CFG_CMD_MASTER) {
@@ -64,23 +64,23 @@ static int i21555_started(struct nfp_cdev *pdev)
 
 /* create ------------------------------------------------------- */
 
-static int i21555_create(struct nfp_cdev *pdev)
+static int i21555_create(struct nfp_dev *ndev)
 {
 	unsigned int tmp32;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
-	/* set our context to just be a pointer to our struct nfp_cdev */
-	pdev->cmdctx = pdev;
+	/* set our context to just be a pointer to our struct nfp_dev */
+	ndev->cmdctx = ndev;
 
-	if (!pdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
 	nfp_log(NFP_DBG2, "%s: enable doorbell", __func__);
-	TO_LE32_MEM(&tmp32, I21555_DOORBELL_PRI_ENABLE);
-	nfp_outl(pdev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET_MASK, tmp32);
-	nfp_outl(pdev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_CLEAR_MASK, tmp32);
+	tmp32 = cpu_to_le32(I21555_DOORBELL_PRI_ENABLE);
+	nfp_outl(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET_MASK, tmp32);
+	nfp_outl(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_CLEAR_MASK, tmp32);
 	return NFP_SUCCESS;
 }
 
@@ -88,23 +88,23 @@ static int i21555_create(struct nfp_cdev *pdev)
 
 static int i21555_destroy(void *ctx)
 {
-	struct nfp_cdev *pdev;
+	struct nfp_dev *ndev;
 	unsigned int tmp32;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
-	pdev = (struct nfp_cdev *)ctx;
-	if (!pdev) {
-		nfp_log(NFP_DBG1, "%s: NULL pdev", __func__);
+	ndev = (struct nfp_dev *)ctx;
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
-	if (!pdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
-	TO_LE32_MEM(&tmp32, I21555_DOORBELL_PRI_DISABLE);
-	nfp_outl(pdev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET_MASK, tmp32);
-	nfp_outl(pdev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_CLEAR_MASK, tmp32);
+	tmp32 = cpu_to_le32(I21555_DOORBELL_PRI_DISABLE);
+	nfp_outl(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET_MASK, tmp32);
+	nfp_outl(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_CLEAR_MASK, tmp32);
 
 	return NFP_SUCCESS;
 }
@@ -113,8 +113,6 @@ static int i21555_destroy(void *ctx)
 
 static int i21555_open(void *ctx)
 {
-	(void)ctx;
-
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
 	return NFP_SUCCESS;
@@ -124,7 +122,6 @@ static int i21555_open(void *ctx)
 
 static int i21555_close(void *ctx)
 {
-	(void)ctx;
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
 	return NFP_SUCCESS;
@@ -134,22 +131,22 @@ static int i21555_close(void *ctx)
 
 static int i21555_isr(void *ctx, int *handled)
 {
-	struct nfp_cdev *pdev;
+	struct nfp_dev *ndev;
 	unsigned short doorbell;
 	unsigned short tmp16;
 
 	nfp_log(NFP_DBG3, "%s: entered", __func__);
 
 	*handled = 0;
-	pdev = (struct nfp_cdev *)ctx;
-	if (!pdev) {
-		nfp_log(NFP_DBG1, "%s: NULL pdev", __func__);
+	ndev = (struct nfp_dev *)ctx;
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
 
-	pdev->stats.isr++;
+	ndev->stats.isr++;
 
-	if (!pdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
@@ -157,42 +154,40 @@ static int i21555_isr(void *ctx, int *handled)
 	/* This interrupt may not be from our module, so check that it
 	 * actually is us before handling it.
 	 */
-	doorbell = nfp_inw(pdev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET);
-	doorbell = FROM_LE16_MEM(&doorbell);
+	doorbell = nfp_inw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET);
+	doorbell = le16_to_cpu(doorbell);
 	while (doorbell && doorbell != 0xffff) {
 		*handled = 1;
 		/* service interrupts */
 		if (doorbell & (NFAST_INT_DEVICE_WRITE_OK |
 				NFAST_INT_DEVICE_WRITE_FAILED)) {
-			pdev->stats.isr_write++;
-			TO_LE16_MEM(&tmp16,
-				    NFAST_INT_DEVICE_WRITE_OK |
+			ndev->stats.isr_write++;
+			tmp16 = cpu_to_le16(NFAST_INT_DEVICE_WRITE_OK |
 				    NFAST_INT_DEVICE_WRITE_FAILED);
-			nfp_outw(pdev, CSR_BAR,
+			nfp_outw(ndev, CSR_BAR,
 				 I21555_OFFSET_DOORBELL_PRI_CLEAR, tmp16);
 
 			nfp_log(NFP_DBG2,
 				"%s: write done interrupt, ok = %d.", __func__,
 				doorbell & NFAST_INT_DEVICE_WRITE_OK ? 1 : 0);
 
-			nfp_write_complete(pdev->dev, doorbell &
+			nfp_write_complete(ndev, doorbell &
 					   NFAST_INT_DEVICE_WRITE_OK ? 1 : 0);
 		}
 
 		if (doorbell &
 		    (NFAST_INT_DEVICE_READ_OK |
 		     NFAST_INT_DEVICE_READ_FAILED)) {
-			pdev->stats.isr_read++;
-			TO_LE16_MEM(&tmp16,
-				    NFAST_INT_DEVICE_READ_OK |
+			ndev->stats.isr_read++;
+			tmp16 = cpu_to_le16(NFAST_INT_DEVICE_READ_OK |
 				    NFAST_INT_DEVICE_READ_FAILED);
-			nfp_outw(pdev, CSR_BAR,
+			nfp_outw(ndev, CSR_BAR,
 				 I21555_OFFSET_DOORBELL_PRI_CLEAR, tmp16);
 
 			nfp_log(NFP_DBG2,
 				"%s: read ack interrupt, ok = %d.", __func__,
 				doorbell & NFAST_INT_DEVICE_READ_OK ? 1 : 0);
-			nfp_read_complete(pdev->dev, doorbell &
+			nfp_read_complete(ndev, doorbell &
 					  NFAST_INT_DEVICE_READ_OK ? 1 : 0);
 		}
 
@@ -200,15 +195,15 @@ static int i21555_isr(void *ctx, int *handled)
 		    ~(NFAST_INT_DEVICE_READ_OK | NFAST_INT_DEVICE_READ_FAILED |
 		      NFAST_INT_DEVICE_WRITE_OK |
 		      NFAST_INT_DEVICE_WRITE_FAILED)) {
-			TO_LE16_MEM(&tmp16, doorbell);
-			nfp_outw(pdev, CSR_BAR,
+			tmp16 = cpu_to_le16(doorbell);
+			nfp_outw(ndev, CSR_BAR,
 				 I21555_OFFSET_DOORBELL_PRI_CLEAR, tmp16);
 			nfp_log(NFP_DBG1, "%s: unexpected interrupt %x",
 				__func__, doorbell);
 		}
-		doorbell = nfp_inw(pdev, CSR_BAR,
+		doorbell = nfp_inw(ndev, CSR_BAR,
 				   I21555_OFFSET_DOORBELL_PRI_SET);
-		doorbell = FROM_LE16_MEM(&doorbell);
+		doorbell = le16_to_cpu(doorbell);
 	}
 	nfp_log(NFP_DBG3, "%s: exiting", __func__);
 	return 0;
@@ -219,33 +214,28 @@ static int i21555_isr(void *ctx, int *handled)
 static int i21555_write(unsigned int addr, const char *block, int len,
 			void *ctx)
 {
-	struct nfp_cdev *cdev;
+	struct nfp_dev *ndev;
 	unsigned int hdr[2];
 	int ne;
 	unsigned short tmp16;
 	unsigned int tmp32;
 
-	/* Note: 'addr' not used in this implementation,
-	 * and this is to silence the Windows build
-	 */
-	(void)addr;
-
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
-	cdev = (struct nfp_cdev *)ctx;
-	if (!cdev) {
-		nfp_log(NFP_DBG1, "%s: NULL cdev", __func__);
+	ndev = (struct nfp_dev *)ctx;
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
 
-	cdev->stats.write_fail++;
+	ndev->stats.write_fail++;
 
-	if (!cdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
 
-	ne = i21555_started(cdev);
+	ne = i21555_started(ndev);
 	if (ne) {
 		if (ne != NFP_ESTARTING) {
 			nfp_log(NFP_DBG1,
@@ -254,44 +244,44 @@ static int i21555_write(unsigned int addr, const char *block, int len,
 		return ne;
 	}
 
-	nfp_log(NFP_DBG3, "%s: cdev->bar[ MEMBAR2 ]= %p", __func__,
-		cdev->bar[MEMBAR2]);
-	nfp_log(NFP_DBG3, "%s: cdev->bar[ CSR_BAR ]= %p", __func__,
-		cdev->bar[CSR_BAR]);
+	nfp_log(NFP_DBG3, "%s: ndev->bar[ MEMBAR2 ]= %p", __func__,
+		ndev->bar[MEMBAR2]);
+	nfp_log(NFP_DBG3, "%s: ndev->bar[ CSR_BAR ]= %p", __func__,
+		ndev->bar[CSR_BAR]);
 	nfp_log(NFP_DBG3, "%s: block len %d", __func__, len);
-	ne = nfp_copy_from_user_to_dev(cdev, MEMBAR2, NFPCI_JOBS_WR_DATA,
+	ne = nfp_copy_from_user_to_dev(ndev, MEMBAR2, NFPCI_JOBS_WR_DATA,
 				       block, len);
 	if (ne) {
 		nfp_log(NFP_DBG1,
 			"%s: nfp_copy_from_user_to_dev failed", __func__);
 		return ne;
 	}
-	TO_LE32_MEM(&hdr[0], NFPCI_JOB_CONTROL);
-	TO_LE32_MEM(&hdr[1], len);
-	ne = nfp_copy_to_dev(cdev, MEMBAR2, NFPCI_JOBS_WR_CONTROL,
+	hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
+	hdr[1] = cpu_to_le32(len);
+	ne = nfp_copy_to_dev(ndev, MEMBAR2, NFPCI_JOBS_WR_CONTROL,
 			     (const char *)hdr, 8);
 	if (ne) {
 		nfp_log(NFP_DBG1, "%s: nfp_copy_to_dev failed", __func__);
 		return ne;
 	}
-	ne = nfp_copy_from_dev(cdev, MEMBAR2, NFPCI_JOBS_WR_LENGTH,
+	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_WR_LENGTH,
 			       (char *)hdr, 4);
 	if (ne) {
 		nfp_log(NFP_DBG1, "%s: nfp_copy_from_dev failed", __func__);
 		return ne;
 	}
 
-	TO_LE32_MEM(&tmp32, len);
+	tmp32 = cpu_to_le32(len);
 	if (hdr[0] != tmp32) {
 		nfp_log(NFP_DBG1, "%s: length not written", __func__);
 		return NFP_EIO;
 	}
-	TO_LE16_MEM(&tmp16, NFAST_INT_HOST_WRITE_REQUEST >> 16);
-	nfp_outw(cdev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
+	tmp16 = cpu_to_le16(NFAST_INT_HOST_WRITE_REQUEST >> 16);
+	nfp_outw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
 
-	cdev->stats.write_fail--;
-	cdev->stats.write_block++;
-	cdev->stats.write_byte += len;
+	ndev->stats.write_fail--;
+	ndev->stats.write_block++;
+	ndev->stats.write_byte += len;
 
 	nfp_log(NFP_DBG2, "%s: done", __func__);
 	return NFP_SUCCESS;
@@ -301,27 +291,27 @@ static int i21555_write(unsigned int addr, const char *block, int len,
 
 static int i21555_read(char *block, int len, void *ctx, int *rcount)
 {
-	struct nfp_cdev *cdev;
+	struct nfp_dev *ndev;
 	int ne;
 	int count;
 
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 	*rcount = 0;
 
-	cdev = (struct nfp_cdev *)ctx;
-	if (!cdev) {
-		nfp_log(NFP_DBG1, "%s: NULL pdev", __func__);
+	ndev = (struct nfp_dev *)ctx;
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
 
-	cdev->stats.read_fail++;
+	ndev->stats.read_fail++;
 
-	if (!cdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
 
-	ne = i21555_started(cdev);
+	ne = i21555_started(ndev);
 	if (ne) {
 		if (ne != NFP_ESTARTING)
 			nfp_log(NFP_DBG1, "%s: i21555_started failed",
@@ -330,20 +320,20 @@ static int i21555_read(char *block, int len, void *ctx, int *rcount)
 		return ne;
 	}
 
-	ne = nfp_copy_from_dev(cdev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
+	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
 			       (char *)&count, 4);
 	if (ne) {
 		nfp_log(NFP_DBG1, "%s: nfp_copy_from_dev failed.", __func__);
 		return ne;
 	}
-	count = FROM_LE32_MEM(&count);
+	count = le32_to_cpu(count);
 	if (count < 0 || count > len) {
 		nfp_log(NFP_DBG1,
 			"%s: bad byte count (%d) from device", __func__,
 			count);
 		return NFP_EIO;
 	}
-	ne = nfp_copy_to_user_from_dev(cdev, MEMBAR2, NFPCI_JOBS_RD_DATA,
+	ne = nfp_copy_to_user_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_DATA,
 				       block, count);
 	if (ne) {
 		nfp_log(NFP_DBG1, "%s: nfp_copy_to_user failed.", __func__);
@@ -351,9 +341,9 @@ static int i21555_read(char *block, int len, void *ctx, int *rcount)
 	}
 	nfp_log(NFP_DBG2, "%s: done", __func__);
 	*rcount = count;
-	cdev->stats.read_fail--;
-	cdev->stats.read_block++;
-	cdev->stats.read_byte += len;
+	ndev->stats.read_fail--;
+	ndev->stats.read_block++;
+	ndev->stats.read_byte += len;
 	return NFP_SUCCESS;
 }
 
@@ -361,9 +351,6 @@ static int i21555_read(char *block, int len, void *ctx, int *rcount)
 
 static int i21555_chupdate(char *data, int len, void *ctx)
 {
-	(void)ctx;
-	(void)len;
-	(void)data;
 	nfp_log(NFP_DBG1, "%s: NYI", __func__);
 	return NFP_SUCCESS;
 }
@@ -373,34 +360,30 @@ static int i21555_chupdate(char *data, int len, void *ctx)
 static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
 				 int lock_flag)
 {
-	struct nfp_cdev *cdev;
+	struct nfp_dev *ndev;
 	unsigned int hdr[3];
 	unsigned short tmp16;
 	unsigned int tmp32;
 	int ne;
 	int hdr_len;
 
-	/* not used with i21555, mentioned to defeat build warnings
-	 */
-	(void)lock_flag;
-
 	nfp_log(NFP_DBG2, "%s: entered", __func__);
 
-	cdev = (struct nfp_cdev *)ctx;
-	if (!cdev) {
-		nfp_log(NFP_DBG1, "%s: NULL cdev", __func__);
+	ndev = (struct nfp_dev *)ctx;
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
 
-	cdev->stats.ensure_fail++;
+	ndev->stats.ensure_fail++;
 
-	if (!cdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__,
 			CSR_BAR);
 		return NFP_ENOMEM;
 	}
 
-	ne = i21555_started(cdev);
+	ne = i21555_started(ndev);
 	if (ne) {
 		if (ne != NFP_ESTARTING) {
 			nfp_log(NFP_DBG1,
@@ -410,24 +393,24 @@ static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
 		return ne;
 	}
 
-	nfp_log(NFP_DBG3, "%s: pdev->bar[ MEMBAR2 ]= %p", __func__,
-		cdev->bar[MEMBAR2]);
-	nfp_log(NFP_DBG3, "%s: pdev->bar[ CSR_BAR ]= %p", __func__,
-		cdev->bar[CSR_BAR]);
+	nfp_log(NFP_DBG3, "%s: ndev->bar[ MEMBAR2 ]= %p", __func__,
+		ndev->bar[MEMBAR2]);
+	nfp_log(NFP_DBG3, "%s: ndev->bar[ CSR_BAR ]= %p", __func__,
+		ndev->bar[CSR_BAR]);
 	if (addr) {
 		nfp_log(NFP_DBG3, "%s: new format, addr %p", __func__,
 			addr);
-		TO_LE32_MEM(&hdr[0], NFPCI_JOB_CONTROL_PCI_PUSH);
-		TO_LE32_MEM(&hdr[1], len);
-		TO_LE32_MEM(&hdr[2], addr);
+		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL_PCI_PUSH);
+		hdr[1] = cpu_to_le32(len);
+		hdr[2] = cpu_to_le32(addr);
 		hdr_len = 12;
 	} else {
-		TO_LE32_MEM(&hdr[0], NFPCI_JOB_CONTROL);
-		TO_LE32_MEM(&hdr[1], len);
+		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
+		hdr[1] = cpu_to_le32(len);
 		hdr_len = 8;
 	}
 
-	ne = nfp_copy_to_dev(cdev, MEMBAR2, NFPCI_JOBS_RD_CONTROL,
+	ne = nfp_copy_to_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_CONTROL,
 			     (const char *)hdr, hdr_len);
 	if (ne) {
 		nfp_log(NFP_DBG1,
@@ -435,7 +418,7 @@ static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
 		return ne;
 	}
 
-	ne = nfp_copy_from_dev(cdev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
+	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
 			       (char *)hdr, 4);
 	if (ne) {
 		nfp_log(NFP_DBG1,
@@ -443,17 +426,17 @@ static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
 		return ne;
 	}
 
-	TO_LE32_MEM(&tmp32, len);
+	tmp32 = cpu_to_le32(len);
 
 	if (hdr[0] != tmp32) {
 		nfp_log(NFP_DBG1, "%s: len not written", __func__);
 		return NFP_EIO;
 	}
-	TO_LE16_MEM(&tmp16, NFAST_INT_HOST_READ_REQUEST >> 16);
-	nfp_outw(cdev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
+	tmp16 = cpu_to_le16(NFAST_INT_HOST_READ_REQUEST >> 16);
+	nfp_outw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
 
-	cdev->stats.ensure_fail--;
-	cdev->stats.ensure++;
+	ndev->stats.ensure_fail--;
+	ndev->stats.ensure++;
 
 	return NFP_SUCCESS;
 }
@@ -463,20 +446,20 @@ static int i21555_ensure_reading(unsigned int addr, int len, void *ctx,
 static int i21555_set_control(const struct nfdev_control_str *control,
 			      void *ctx)
 {
-	struct nfp_cdev *cdev = (struct nfp_cdev *)ctx;
+	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
 	u32 control_flipped;
 
 	nfp_log(NFP_DBG3, "%s: entered", __func__);
-	if (!cdev) {
-		nfp_log(NFP_DBG1, "%s: NULL pdev", __func__);
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
-	if (!cdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
-	TO_LE32_MEM(&control_flipped, control->control);
-	nfp_outl(cdev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_CONTROL,
+	control_flipped = cpu_to_le32(control->control);
+	nfp_outl(ndev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_CONTROL,
 		 control_flipped);
 	return NFP_SUCCESS;
 }
@@ -485,24 +468,24 @@ static int i21555_set_control(const struct nfdev_control_str *control,
 
 static int i21555_get_status(struct nfdev_status_str *status, void *ctx)
 {
-	struct nfp_cdev *cdev = (struct nfp_cdev *)ctx;
+	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
 	u32 status_flipped;
 	u32 *error = (u32 *)status->error;
 
 	nfp_log(NFP_DBG3, "%s: entered", __func__);
-	if (!cdev) {
-		nfp_log(NFP_DBG1, "%s: NULL cdev", __func__);
+	if (!ndev) {
+		nfp_log(NFP_DBG1, "%s: NULL ndev", __func__);
 		return NFP_ENODEV;
 	}
-	if (!cdev->bar[CSR_BAR]) {
+	if (!ndev->bar[CSR_BAR]) {
 		nfp_log(NFP_DBG1, "%s: null BAR[%d]", __func__, CSR_BAR);
 		return NFP_ENOMEM;
 	}
 	status_flipped =
-		nfp_inl(cdev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_STATUS);
-	status->status = FROM_LE32_MEM(&status_flipped);
-	error[0] = nfp_inl(cdev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_ERROR_LO);
-	error[1] = nfp_inl(cdev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_ERROR_HI);
+		nfp_inl(ndev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_STATUS);
+	status->status = le32_to_cpu(status_flipped);
+	error[0] = nfp_inl(ndev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_ERROR_LO);
+	error[1] = nfp_inl(ndev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_ERROR_HI);
 	return NFP_SUCCESS;
 }
 
