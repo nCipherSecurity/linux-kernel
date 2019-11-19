@@ -13,16 +13,43 @@
 #include <linux/dma-mapping.h>
 #include <linux/bitops.h>
 
-#include "osif.h"
-#include "pci.h"
+#include "solo.h"
 #include "i21555.h"
 #include "fsl.h"
+
+/* limits & sizes ------------------------------------------------ */
+#define NFP_READ_MAX (8 * 1024)
+#define NFP_WRITE_MAX (8 * 1024)
+#define NFP_READBUF_SIZE (NFP_READ_MAX + 8)
+#define NFP_WRITEBUF_SIZE (NFP_WRITE_MAX + 8)
+#define NFP_MAXDEV 16
+
+/* other operating constants ------------------------------------- */
+#define NFP_TIMEOUT_SEC 20
+#define NFP_DMA_NBYTES_OFFSET (4)
+#define NFP_DMA_ADDRESS_OFFSET (8)
+#define NFP_DRVNAME "nCipher nFast PCI driver"
+#define NFP_TIMEOUT ((NFP_TIMEOUT_SEC) * HZ)
+
+/* Interpretation of the bits of struct nfp_dev.rd_outstanding */
+#define WAIT_BIT  0 /* waiting for data */
+#define CMPLT_BIT 1 /* completing a read (got data or timing out) */
+
+/* Used to determine which installed module we're looking at
+ * from its minor device number
+ */
+#define INODE_FROM_FILE(file) ((file)->f_path.dentry->d_inode)
+
+/* Major device type
+ * "nCipher nFast PCI crypto accelerator" in
+ * https://www.kernel.org/doc/html/v4.11/admin-guide/devices.html
+ */
+#define NFP_MAJOR 176 /* */
 
 /* device list --------------------------------------------------- */
 
 struct nfp_dev *nfp_dev_list[NFP_MAXDEV];
 static int nfp_num_devices;
-
 static struct class *nfp_class;
 /*! @} */
 
@@ -69,6 +96,33 @@ MODULE_LICENSE("GPL");
 /** @} */
 
 /**
+ * @addtogroup utils
+ * Error conversion
+ * @{
+ */
+
+ /**
+  * Convert an internal error code to an OS specific one.  This
+  * function was once used so internally we could use one symbol
+  * whatever the OS and convert before presentation, and will
+  * soon disappear in the in-tree linux-only driver
+  */
+int nfp_oserr(int nferr)
+{
+	struct errstr *perr;
+
+	if (nferr == NFP_SUCCESS)
+		return 0;
+	perr = errtab;
+	while (perr->nferr) {
+		if (perr->nferr == nferr)
+			return perr->oserr;
+		perr++;
+	}
+	return -EIO;
+}
+
+/**
  * @addtogroup fops
  * NSHIELD_SOLO character device file operations.
  * @{
@@ -86,10 +140,10 @@ MODULE_LICENSE("GPL");
  * @param wait  poll table pointer.
  * @returns mask indicating if readable and/or writable.
  */
-static unsigned int nfp_poll(struct file *file, poll_table *wait)
+static u32 nfp_poll(struct file *file, poll_table *wait)
 {
 	struct nfp_dev *ndev;
-	unsigned int mask = 0;
+	u32 mask = 0;
 	int minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 
 	nfp_log(NFP_DBG4, "%s: entered", __func__);
@@ -183,7 +237,7 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 			 size_t count, loff_t *off)
 {
 	struct nfp_dev *ndev;
-	unsigned int addr;
+	u32 addr;
 	int nbytes;
 	int minor;
 	int ne;
@@ -230,7 +284,7 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 			__func__, count);
 		addr = ndev->write_dma;
 		nbytes = cpu_to_le32(count);
-		*(unsigned int *)(ndev->write_buf + NFP_DMA_NBYTES_OFFSET) =
+		*(u32 *)(ndev->write_buf + NFP_DMA_NBYTES_OFFSET) =
 			nbytes;
 		if (0 !=
 		    copy_from_user(ndev->write_buf + NFP_DMA_ADDRESS_OFFSET,
@@ -410,7 +464,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	/* finish read */
 
 	if (ndev->ifvers >= NFDEV_IF_PCI_PUSH) {
-		nbytes = *(unsigned int *)(ndev->read_buf +
+		nbytes = *(u32 *)(ndev->read_buf +
 					   NFP_DMA_NBYTES_OFFSET);
 		nbytes = le32_to_cpu(nbytes);
 		nfp_log(NFP_DBG3, "%s: nbytes %d", __func__, nbytes);
@@ -420,9 +474,9 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 				__func__, nbytes);
 			return -EIO;
 		}
-		if (nfp_copy_to_user(buf,
-				     ndev->read_buf + NFP_DMA_ADDRESS_OFFSET,
-				     nbytes) != 0) {
+		if (copy_to_user(buf,
+				 ndev->read_buf + NFP_DMA_ADDRESS_OFFSET,
+				 nbytes) != 0) {
 			nfp_log(NFP_DBG1,
 				"%s: copy to user space failed", __func__);
 			return -EIO;
@@ -605,8 +659,8 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
  */
 static int nfp_ioctl(struct inode *inode,
 		     struct file *file,
-		     unsigned int cmd,
-		     unsigned long arg)
+		     u32 cmd,
+		     u64 arg)
 {
 	struct nfp_dev *ndev;
 	int minor;
@@ -653,7 +707,7 @@ static int nfp_ioctl(struct inode *inode,
 	} break;
 	case NFDEV_IOCTL_ENSUREREADING:
 	case NFDEV_IOCTL_ENSUREREADING_BUG3349: {
-		unsigned int addr, len;
+		u32 addr, len;
 		int err = -EIO;
 		int ne;
 
@@ -662,7 +716,7 @@ static int nfp_ioctl(struct inode *inode,
 		/* get and check max length */
 		if ((void *)arg) {
 			err = copy_from_user((void *)&len, (void *)arg,
-					     sizeof(unsigned int))
+					     sizeof(u32))
 					     ? -EFAULT : 0;
 			if (err) {
 				nfp_log(NFP_DBG1,
@@ -911,7 +965,7 @@ static int nfp_ioctl(struct inode *inode,
  * @returns 0 if successful.
  */
 static long nfp_unlocked_ioctl(struct file *file,
-			       unsigned int cmd,
+			       u32 cmd,
 			       unsigned long arg)
 {
 	long ret;
@@ -926,11 +980,11 @@ static long nfp_unlocked_ioctl(struct file *file,
 		nfp_log(NFP_DBG1, "%s: NULL ndev.", __func__);
 		return -ENODEV;
 	}
-	spin_lock(&ndev->spinlock);
+	mutex_lock(&ndev->ioctl_mutex);
 
 	ret = nfp_ioctl(NULL, file, cmd, arg);
 
-	spin_unlock(&ndev->spinlock);
+	mutex_unlock(&ndev->ioctl_mutex);
 	nfp_log(NFP_DBG2, "%s: left", __func__);
 	return ret;
 }
@@ -1120,13 +1174,13 @@ static int nfp_release(struct inode *node, struct file *file)
 /**
  * NSHIELD SOLO character device file operations table.
  */
-static const struct file_operations nfp_fops = { owner: THIS_MODULE,
-	poll : nfp_poll,
-	write : nfp_write,
-	read : nfp_read,
-	unlocked_ioctl : nfp_unlocked_ioctl,
-	open : nfp_open,
-	release : nfp_release,
+static const struct file_operations nfp_fops = { .owner = THIS_MODULE,
+	.poll = nfp_poll,
+	.write = nfp_write,
+	.read = nfp_read,
+	.unlocked_ioctl = nfp_unlocked_ioctl,
+	.open = nfp_open,
+	.release = nfp_release,
 };
 
 /**
@@ -1168,9 +1222,8 @@ static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 	}
 }
 
-static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
-		     unsigned char slot, unsigned int bar[6],
-		     unsigned int irq_line, struct pci_dev *pcidev)
+static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
+		     u32 bar[6], u32 irq_line, struct pci_dev *pcidev)
 {
 	struct nfp_dev *ndev = 0;
 	int ne;
@@ -1233,6 +1286,8 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 		}
 	}
 
+	mutex_init(&ndev->ioctl_mutex);
+
 	init_waitqueue_head(&ndev->wr_queue);
 	init_waitqueue_head(&ndev->rd_queue);
 
@@ -1265,7 +1320,7 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, unsigned char bus,
 #else
 	init_timer(&ndev->rd_timer);
 	ndev->rd_timer.function = nfp_read_timeout;
-	ndev->rd_timer.data = (unsigned long)ndev;
+	ndev->rd_timer.data = (u64)ndev;
 	ndev->rd_timer.expires = jiffies + (NFP_TIMEOUT_SEC * HZ);
 #endif
 
@@ -1299,12 +1354,12 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 			 struct pci_device_id const *id)
 {
 	int i;
-	unsigned int bar[6];
+	u32 bar[6];
 	const struct nfpcmd_dev *nfp_drvlist[] = { &i21555_cmddev,
 						   &fsl_t1022_cmddev, NULL };
 	const struct nfpcmd_dev *cmddev = nfp_drvlist[id->driver_data];
-	unsigned long iosize;
-	unsigned int irq_line;
+	u64 iosize;
+	u32 irq_line;
 	int pos = 0u;
 	int err = NFP_SUCCESS;
 

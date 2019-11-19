@@ -5,7 +5,7 @@
 #ifndef NFP_I21555_H
 #define NFP_I21555_H
 
-#include "pci.h"
+#include "solo.h"
 
 #ifndef PCI_VENDOR_ID_INTEL
 #define PCI_VENDOR_ID_INTEL			0x8086
@@ -60,7 +60,5 @@
 		   0,                                                          \
 		   0,                                                          \
 		   0}
-
-int i21555_debug(int cmd, void *ctx);
 
 #endif /* NFP_I21555_H */

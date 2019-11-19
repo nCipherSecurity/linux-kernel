@@ -7,7 +7,10 @@
 #define NFP_FSL_H
 
 #include <linux/io.h>
-#include "pci.h"
+#include "solo.h"
+
+/* Always use a lock when 'we' call fsl_started */
+#define NFP_WITH_LOCK 1
 
 /* PCI FSL definitions */
 

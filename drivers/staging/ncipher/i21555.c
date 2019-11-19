@@ -5,9 +5,46 @@
  *
  */
 
-#include "osif.h"
+#include "solo.h"
 #include "i21555.h"
-#include "pci.h"
+
+/* pci fixed length accessors. ----------------------------------
+ * The below functions are used predominantly
+ * to access CSR registers in pci memory space.
+ */
+u32 nfp_inl(struct nfp_dev *ndev, int bar, int offset)
+{
+	nfp_log(NFP_DBG3, "%s: addr %p", __func__, ndev->bar[bar] + offset);
+	return ioread32(ndev->bar[bar] + offset);
+}
+
+u16 nfp_inw(struct nfp_dev *ndev, int bar, int offset)
+{
+	nfp_log(NFP_DBG3, "%s: addr %p", __func__, ndev->bar[bar] + offset);
+	return ioread16(ndev->bar[bar] + offset);
+}
+
+void nfp_outl(struct nfp_dev *ndev, int bar, int offset, u32 data)
+{
+	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
+		ndev->bar[bar] + offset, data);
+	iowrite32(data, ndev->bar[bar] + offset);
+}
+
+void nfp_outw(struct nfp_dev *ndev, int bar, int offset, u16 data)
+{
+	nfp_log(NFP_DBG3, "%s: addr %p, data %x", __func__,
+		ndev->bar[bar] + offset, data);
+	iowrite16(data, ndev->bar[bar] + offset);
+}
+
+int nfp_config_inl(struct nfp_dev *ndev, int offset, u32 *res)
+{
+	if (!ndev || !ndev->pcidev)
+		return NFP_ENODEV;
+	pci_read_config_dword(ndev->pcidev, offset, res);
+	return 0;
+}
 
 /* started ------------------------------------------------------
  *
@@ -335,7 +372,8 @@ static int i21555_read(char *block, int len, void *ctx, int *rcount)
 	ne = nfp_copy_to_user_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_DATA,
 				       block, count);
 	if (ne) {
-		nfp_log(NFP_DBG1, "%s: nfp_copy_to_user failed.", __func__);
+		nfp_log(NFP_DBG1, "%s: nfp_copy_to_user_from_dev failed",
+			__func__);
 		return ne;
 	}
 	nfp_log(NFP_DBG2, "%s: done", __func__);
@@ -496,7 +534,7 @@ const struct nfpcmd_dev i21555_cmddev = {
 	.sub_vendorid = PCI_VENDOR_ID_NCIPHER,
 	.sub_deviceid = PCI_SUBSYSTEM_ID_NFAST_REV1,
 	.bar_sizes = BAR_SIZES,
-	.flags = NFP_CMD_FLG_NEED_IOBUF,
+	.flags = 0,
 	.max_ifvers = NFDEV_IF_PCI_PUSH,
 	.create = i21555_create,
 	.destroy = i21555_destroy,

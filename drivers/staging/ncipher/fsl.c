@@ -5,7 +5,7 @@
  *
  */
 
-#include "osif.h"
+#include "solo.h"
 #include "fsl.h"
 
 /* If defined, use aggressive checking for errors. */
@@ -815,7 +815,7 @@ static int fsl_read(char *block, int len, void *ctx, int *rcnt)
 				       NFPCI_JOBS_RD_DATA, block, cnt);
 	if (ne != NFP_SUCCESS) {
 		ndev->stats.read_fail++;
-		nfp_log(NFP_DBG1, "%s: error: nfp_copy_to_user failed.",
+		nfp_log(NFP_DBG1, "%s: error: nfp_copy_to_user_from_dev failed",
 			__func__);
 		return ne;
 	}
