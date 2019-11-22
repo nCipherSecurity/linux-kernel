@@ -81,7 +81,7 @@
 #define NFAST_INT_HOST_KERN_WRITE_REQUEST   0x00080000
 #define NFAST_INT_HOST_KERN_READ_REQUEST    0x00100000
 
-/* Ordinary job submission ------------------------ */
+/* Ordinary job submission */
 
 /*
  * The NFPCI_OFFSET_JOBS_WR and NFPCI_OFFSET_JOBS_RD regions
@@ -116,7 +116,7 @@
 					     NFPCI_OFFSET_PUSH_ADDR)
 #define NFPCI_MAX_JOBS_RD_LEN		    (0x000FFF8)
 
-/* Kernel interface job submission ---------------- */
+/* Kernel interface job submission */
 
 #define NFPCI_KERN_WR_CONTROL		    (NFPCI_OFFSET_KERN_WR + \
 					     NFPCI_OFFSET_CONTROL)
@@ -210,9 +210,13 @@
 #define NFPCI_SCRATCH_ERROR_HI		    3
 
 #define NFP_BARSIZES_COUNT 6
+/*
+ * This masks off the bottom bits of the PCI_CSR_BAR which signify that the
+ * BAR is an IO BAR rather than a MEM BAR
+ */
 #define NFP_BARSIZES_MASK ~0xF
 
-/* per-instance device structure ------------------------------------ */
+/* per-instance device structure */
 struct nfp_dev {
 	/* downward facing part of the device interface */
 	u8 *bar[NFP_BARSIZES_COUNT];
@@ -257,7 +261,7 @@ struct nfp_dev {
 	struct mutex ioctl_mutex;  /* lock across ioctl */
 };
 
-/* Per-device-type command handlers --------------------------------- */
+/* Per-device-type command handlers */
 struct nfpcmd_dev {
 	const char *name;
 	u16 vendorid, deviceid, sub_vendorid, sub_deviceid;
@@ -266,16 +270,13 @@ struct nfpcmd_dev {
 
 	int (*create)(struct nfp_dev *ndev);
 	int (*destroy)(void *ctx);
-	int (*started)(struct nfp_dev *ndev, int lock_flag);
-	int (*stopped)(struct nfp_dev *ndev);
 	int (*open)(void *ctx);
 	int (*close)(void *ctx);
 	int (*isr)(void *ctx, int *handled);
 	int (*write_block)(u32 addr, const char *ublock, int len, void *ctx);
 	int (*read_block)(char *ublock, int len, void *ctx, int *rcount);
-	int (*channel_update)(char *data, int len, void *ctx);
-	int (*ensure_reading)(u32 addr, int len, void *ctx, int lock_flag);
-	int (*debug)(int cmd, void *ctx);
+	int (*ensure_reading)(dma_addr_t addr,
+			      int len, void *ctx, int lock_flag);
 	int (*setcontrol)(const struct nfdev_control_str *control,
 			  void *ctx); /* may be NULL */
 	int (*getstatus)(struct nfdev_status_str *status,
@@ -286,7 +287,7 @@ struct nfpcmd_dev {
 extern const struct nfpcmd_dev i21555_cmddev;
 extern const struct nfpcmd_dev fsl_t1022_cmddev;
 
-/* user and device memory space access ---------------------------- */
+/* user and device memory space access */
 /*
  * NB these 2 functions are not guaranteed to be re-entrant for a given device
  */
@@ -306,41 +307,13 @@ int nfp_copy_to_dev(struct nfp_dev *ndev, int bar, int offset,
 #define PCI_BASE_ADDRESS_SPACE_PREFETCHABLE 0x8
 #endif
 
-/*
- * This masks off the bottom bits of the PCI_CSR_BAR which signify that the
- * BAR is an IO BAR rather than a MEM BAR
- */
-#define NFP_MEMBAR_MASK ~0xf
-
-/* callbacks from command drivers -------------------------------------- */
+/* callbacks from command drivers */
 void nfp_read_complete(struct nfp_dev *ndev, int ok);
 void nfp_write_complete(struct nfp_dev *ndev, int ok);
 
-/* debug ------------------------------------------------------------ */
-
-#define NFP_DBG1	1
-#define NFP_DBGE	NFP_DBG1
-#define NFP_DBG2	2
-#define NFP_DBG3	3
-#define NFP_DBG4	4
-
-void nfp_log(int severity, const char *format, ...);
-extern int nfp_debug;
-
-/* internal error codes --------------------------------------------- */
-#define NFP_SUCCESS	0x0
-#define NFP_EFAULT	0x1
-#define NFP_ENOMEM	0x2
-#define NFP_EINVAL	0x3
-#define NFP_EIO		0x4
-#define NFP_ENXIO	0x5
-#define NFP_ENODEV	0x6
-#define NFP_EINTR	0x7
-#define NFP_ESTARTING	0x8
-#define NFP_EAGAIN	0x9
-#define NFP_EPOLLING	0xA
-#define NFP_EINTERRUPT	0xB
-#define NFP_EUNKNOWN	0x100
+/* status codes */
+#define NFP_HSM_STARTING 1 /* The HSM hasn't readied its PCI interface yet */
+#define NFP_HSM_POLLING	2 /* The HSM's EPD will use polling */
 
 /* error conversions table */
 struct errstr {

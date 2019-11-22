@@ -60,17 +60,6 @@ static struct class *nfp_class;
  */
 
 /**
- * NSHIELD SOLO module debug parameter.
- *
- * This value can be overridden when the module is loaded, for example:
- *
- *   insmod nshield_solo.ko nfp_debug=<n>
- *
- * where <n> = 1 through 4 inclusive
- */
-int nfp_debug = 1;
-
-/**
  * NSHIELD_SOLO module interface version parameter.
  *
  * This value can be overridden when the module is loaded, for example:
@@ -86,41 +75,11 @@ int nfp_ifvers;
 
 MODULE_AUTHOR("nCipher");
 MODULE_DESCRIPTION("nCipher PCI HSM driver");
-module_param(nfp_debug, int, 0644);
 module_param(nfp_ifvers, int, 0444);
-MODULE_PARM_DESC(nfp_debug, "debug level (1-4)");
 MODULE_PARM_DESC(nfp_ifvers, "maximum interface version (1-2), or any (0)");
-
 MODULE_LICENSE("GPL");
 
 /** @} */
-
-/**
- * @addtogroup utils
- * Error conversion
- * @{
- */
-
- /**
-  * Convert an internal error code to an OS specific one.  This
-  * function was once used so internally we could use one symbol
-  * whatever the OS and convert before presentation, and will
-  * soon disappear in the in-tree linux-only driver
-  */
-int nfp_oserr(int nferr)
-{
-	struct errstr *perr;
-
-	if (nferr == NFP_SUCCESS)
-		return 0;
-	perr = errtab;
-	while (perr->nferr) {
-		if (perr->nferr == nferr)
-			return perr->oserr;
-		perr++;
-	}
-	return -EIO;
-}
 
 /**
  * @addtogroup fops
@@ -146,22 +105,20 @@ static u32 nfp_poll(struct file *file, poll_table *wait)
 	u32 mask = 0;
 	int minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
-
-	/* find ndev from minor */
 
 	ndev = nfp_dev_list[minor];
 	if (!ndev) {
-		nfp_log(NFP_DBG1,
-			"%s: no NSHIELD SOLO device associated with this file",
-			__func__);
+		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
+	/* find ndev from minor */
 
 	poll_wait(file, &ndev->wr_queue, wait);
 	poll_wait(file, &ndev->rd_queue, wait);
@@ -171,8 +128,8 @@ static u32 nfp_poll(struct file *file, poll_table *wait)
 	if (test_bit(0, &ndev->rd_ready))
 		mask |= POLLIN | POLLRDNORM; /* readable */
 
-	nfp_log(NFP_DBG3, "%s: device is %swritable, %sreadable",
-		__func__,
+	dev_notice(&ndev->pcidev->dev, "%s: device is %swritable, %sreadable",
+		   __func__,
 		mask & POLLOUT ? "" : "not ", mask & POLLIN ? "" : "not ");
 
 	return mask;
@@ -180,7 +137,13 @@ static u32 nfp_poll(struct file *file, poll_table *wait)
 
 void nfp_write_complete(struct nfp_dev *ndev, int ok)
 {
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
+	/* check for device */
+	if (!ndev) {
+		pr_err("%s: error: no device", __func__);
+		return;
+	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* could be executed simultaneously by more than one thread -
 	 * e.g. from the write isr and from the nfp_write/timeout
@@ -193,7 +156,7 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 		/* we can only get here if the write has already
 		 * been completed
 		 */
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: no write outstanding to complete; ignoring completion",
 			__func__);
 		clear_bit(CMPLT_BIT, &ndev->wr_outstanding);
@@ -203,9 +166,9 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 	/* complete write by waking waiting processes */
 	ndev->wr_ok = ok;
 
-	nfp_log(NFP_DBG3, "%s: write completed %sokay",
-		__func__,
-		ok ? "" : "not ");
+	dev_notice(&ndev->pcidev->dev, "%s: write completed %sokay",
+		   __func__,
+		   ok ? "" : "not ");
 
 	/* make sure that write is complete before we clear wr_outstanding */
 	smp_mb__before_atomic();
@@ -242,46 +205,45 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 	int minor;
 	int ne;
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
 	/* find ndev from minor */
-
 	minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
 
 	ndev = nfp_dev_list[minor];
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: write: NULL ndev.", __func__);
+		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
 
-	/* check max length requested */
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
+	/* check max length requested */
 	if (count <= 0 || NFP_WRITE_MAX < count) {
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: invalid requested write length %lu",
 			__func__, count);
 		return -EINVAL;
 	}
 
 	/* check if called before ready */
-
 	if (!test_and_clear_bit(0, &ndev->wr_ready)) {
-		nfp_log(NFP_DBG1, "%s: write called when not ready.",
+		dev_err(&ndev->pcidev->dev, "%s: write called when not ready.",
 			__func__);
 		return -ENXIO;
 	}
 	set_bit(WAIT_BIT, &ndev->wr_outstanding);
 
-	nfp_log(NFP_DBG3, "%s: writing %d bytes", __func__, count);
+	dev_notice(&ndev->pcidev->dev,
+		   "%s: writing %ld bytes", __func__, count);
 
 	addr = 0;
 	if (ndev->ifvers >= NFDEV_IF_PCI_PULL) {
-		nfp_log(NFP_DBG3, "%s: copying %lu bytes to dma buffer",
-			__func__, count);
+		dev_notice(&ndev->pcidev->dev,
+			   "%s: copying %lu bytes to dma buffer",
+			   __func__, count);
 		addr = ndev->write_dma;
 		nbytes = cpu_to_le32(count);
 		*(u32 *)(ndev->write_buf + NFP_DMA_NBYTES_OFFSET) =
@@ -291,17 +253,18 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 				   buf, count)) {
 			clear_bit(WAIT_BIT, &ndev->wr_outstanding);
 			set_bit(0, &ndev->wr_ready);
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: copy from user space failed", __func__);
 			return -EIO;
 		}
 	}
 
 	ne = ndev->cmddev->write_block(addr, buf, count, ndev->cmdctx);
-	if (ne != NFP_SUCCESS) {
+	if (ne != 0) {
 		nfp_write_complete(ndev, 0);
-		if (ne != NFP_ESTARTING)
-			nfp_log(NFP_DBG1, "%s: write_block failed", __func__);
+		if (ne != -EAGAIN)
+			dev_err(&ndev->pcidev->dev,
+				"%s: write_block failed", __func__);
 	}
 
 	while (test_bit(WAIT_BIT, &ndev->wr_outstanding)) {
@@ -311,32 +274,41 @@ static ssize_t nfp_write(struct file *file, char const __user *buf,
 					NFP_TIMEOUT)) {
 			nfp_write_complete(ndev, 0);
 			set_bit(0, &ndev->wr_ready);
-			nfp_log(NFP_DBG1, "%s: module timed out", __func__);
+			dev_err(&ndev->pcidev->dev,
+				"%s: module timed out", __func__);
 			return -ENXIO;
 		}
 		if (test_bit(WAIT_BIT, &ndev->wr_outstanding)) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: handling spurious wake-up", __func__);
 		}
 	}
 	set_bit(0, &ndev->wr_ready);
 
-	nfp_log(NFP_DBG2, "%s: returning %d.", __func__,
-		ndev->wr_ok ? count : -EIO);
+	dev_warn(&ndev->pcidev->dev, "%s: returning %ld.", __func__,
+		 ndev->wr_ok ? count : -EIO);
 
 	if (!ndev->wr_ok) {
-		nfp_log(NFP_DBG1, "%s: device write failed", __func__);
+		dev_err(&ndev->pcidev->dev,
+			"%s: device write failed", __func__);
 		return -EIO;
 	}
 
-	nfp_log(NFP_DBG2, "%s: wrote %d bytes (%s)", __func__, count,
-		ndev->ifvers >= NFDEV_IF_PCI_PULL ? "dma" : "std");
+	dev_warn(&ndev->pcidev->dev,
+		 "%s: wrote %ld bytes (%s)", __func__, count,
+		 ndev->ifvers >= NFDEV_IF_PCI_PULL ? "dma" : "std");
 	return count;
 }
 
 void nfp_read_complete(struct nfp_dev *ndev, int ok)
 {
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
+	/* check for device */
+	if (!ndev) {
+		pr_err("%s: error: no device", __func__);
+		return;
+	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* could be executed simultaneously by more than one thread -
 	 * e.g. from the read isr and from the timeout
@@ -349,7 +321,7 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 		/* we can only get here if the read has already been completed
 		 * and no new ENSUREREADING request has been received since
 		 */
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: no read outstanding to complete; ignoring completion",
 			__func__);
 		clear_bit(CMPLT_BIT, &ndev->rd_outstanding);
@@ -362,8 +334,8 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 	ndev->rd_ok = ok;
 	set_bit(0, &ndev->rd_ready);
 
-	nfp_log(NFP_DBG3, "%s: read completed %sokay",
-		__func__,
+	dev_notice(&ndev->pcidev->dev, "%s: read completed %sokay",
+		   __func__,
 		ok ? "" : "not ");
 
 	/* make sure that rd_ready is set before we clear rd_outstanding */
@@ -378,17 +350,15 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 
 static void nfp_read_timeout(struct timer_list *t)
 {
-	struct nfp_dev *ndev;
+	struct nfp_dev *ndev = from_timer(ndev, t, rd_timer);
 
-	nfp_log(NFP_DBG4, "%s: entered",
-		__func__);
-
-	ndev = from_timer(ndev, t, rd_timer);
-
+	/* check for device */
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: NULL device.", __func__);
+		pr_err("%s: error: no device", __func__);
 		return;
 	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	nfp_read_complete(ndev, 0);
 }
@@ -415,31 +385,31 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	int minor;
 	int ne;
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
 	minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
 
 	ndev = nfp_dev_list[minor];
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: NULL ndev.", __func__);
+		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
 
-	/* check user space buffer */
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
+	/* check user space buffer */
 	if (!access_ok(buf, count)) {
-		nfp_log(NFP_DBG1, "%s: user space verify failed.", __func__);
+		dev_err(&ndev->pcidev->dev,
+			"%s: user space verify failed.", __func__);
 		return -EFAULT;
 	}
 
 	/* check max length requested */
 
 	if (count <= 0 || NFP_READ_MAX < count) {
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: invalid requested max read length %lu",
 			__func__,
 			count);
@@ -447,7 +417,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	}
 
 	if (!test_and_clear_bit(0, &ndev->rd_ready)) {
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: read called when not ready.",
 			__func__);
 		return -EIO;
@@ -457,7 +427,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	/* check if read was ok */
 
 	if (!ndev->rd_ok) {
-		nfp_log(NFP_DBG1, "%s: read failed", __func__);
+		dev_err(&ndev->pcidev->dev, "%s: read failed", __func__);
 		return -EIO;
 	}
 
@@ -467,9 +437,10 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 		nbytes = *(u32 *)(ndev->read_buf +
 					   NFP_DMA_NBYTES_OFFSET);
 		nbytes = le32_to_cpu(nbytes);
-		nfp_log(NFP_DBG3, "%s: nbytes %d", __func__, nbytes);
+		dev_notice(&ndev->pcidev->dev,
+			   "%s: nbytes %d", __func__, nbytes);
 		if (nbytes < 0 || nbytes > count) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: bad byte count (%d) from device",
 				__func__, nbytes);
 			return -EIO;
@@ -477,7 +448,7 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 		if (copy_to_user(buf,
 				 ndev->read_buf + NFP_DMA_ADDRESS_OFFSET,
 				 nbytes) != 0) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: copy to user space failed", __func__);
 			return -EIO;
 		}
@@ -485,20 +456,22 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 		nbytes = 0;
 		ne = ndev->cmddev->read_block(buf, count, ndev->cmdctx,
 					      (void *)&nbytes);
-		if (ne != NFP_SUCCESS) {
-			nfp_log(NFP_DBG1, "%s: device read failed", __func__);
-			return nfp_oserr(ne);
+		if (ne != 0) {
+			dev_err(&ndev->pcidev->dev,
+				"%s: device read failed", __func__);
+			return ne;
 		}
 	}
 
 	if (nbytes > NFP_READ_MAX) {
-		nfp_log(NFP_DBG1, "%s: read reply overflow: %d > %d max",
-			nbytes, NFP_READ_MAX);
+		dev_err(&ndev->pcidev->dev,
+			"%s: read reply overflow: %d > %d max",
+			__func__, nbytes, NFP_READ_MAX);
 		return -EIO;
 	}
 
-	nfp_log(NFP_DBG2, "%s: read %d bytes (%s)", __func__, nbytes,
-		ndev->ifvers >= NFDEV_IF_PCI_PUSH ? "dma" : "std");
+	dev_warn(&ndev->pcidev->dev, "%s: read %d bytes (%s)", __func__, nbytes,
+		 ndev->ifvers >= NFDEV_IF_PCI_PUSH ? "dma" : "std");
 	return nbytes;
 }
 
@@ -518,7 +491,7 @@ int nfp_alloc_pci_push(struct nfp_dev *ndev)
 					       DMA_BIDIRECTIONAL);
 			if (dma_mapping_error(&ndev->pcidev->dev,
 					      ndev->read_dma)) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"dma_mapping_error found after attempting dma_map_single");
 				kfree(ndev->read_buf);
 				ndev->read_buf = NULL;
@@ -545,7 +518,7 @@ int nfp_alloc_pci_pull(struct nfp_dev *ndev)
 							 DMA_BIDIRECTIONAL);
 			if (dma_mapping_error(&ndev->pcidev->dev,
 					      ndev->write_dma)) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"dma_mapping_error found after attempting dma_map_single");
 				kfree(ndev->write_buf);
 				ndev->write_buf = NULL;
@@ -591,7 +564,13 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 {
 	int max_ifvers;
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
+	/* check for device */
+	if (!ndev) {
+		pr_err("%s: error: no device", __func__);
+		return 0; /* no interface version */
+	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	max_ifvers = ndev->cmddev->max_ifvers;
 	if (nfp_ifvers != 0 && max_ifvers > nfp_ifvers)
@@ -600,7 +579,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 	/* on any error, ifvers remains unchanged */
 	if (ifvers < 0 || ifvers > max_ifvers) {
 		/* invalid nfp_ifvers: set to max as fallback */
-		nfp_log(NFP_DBG1,
+		dev_err(&ndev->pcidev->dev,
 			"%s: %d out of allowable range [0:%d]",
 			__func__,
 			ifvers, max_ifvers);
@@ -620,7 +599,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 
 	if (ifvers >= NFDEV_IF_PCI_PUSH) {
 		if (!nfp_alloc_pci_push(ndev)) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: can't set ifvers %d as resources not available",
 				__func__,
 				ifvers);
@@ -632,7 +611,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 
 	if (ifvers >= NFDEV_IF_PCI_PULL) {
 		if (!nfp_alloc_pci_pull(ndev)) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: can't set ifvers %d as resources not available",
 				__func__,
 				ifvers);
@@ -643,7 +622,8 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 	}
 
 	ndev->ifvers = ifvers;
-	nfp_log(NFP_DBG2, "%s: setting ifvers = %d", __func__, ifvers);
+	dev_warn(&ndev->pcidev->dev,
+		 "%s: setting ifvers = %d", __func__, ifvers);
 
 	return ifvers;
 }
@@ -665,53 +645,55 @@ static int nfp_ioctl(struct inode *inode,
 	struct nfp_dev *ndev;
 	int minor;
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
 	/* find ndev from minor */
-
 	minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
 
 	ndev = nfp_dev_list[minor];
+
+	/* check for device */
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: NULL ndev.", __func__);
+		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	switch (cmd) {
 	case NFDEV_IOCTL_ENQUIRY: {
 		struct nfdev_enquiry_str enq_data;
 		int err = -EIO;
 
-		nfp_log(NFP_DBG4, "%s: enquiry", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: enquiry", __func__);
 		enq_data.busno = ndev->busno;
 		enq_data.slotno = ndev->slotno;
 		if ((void *)arg) {
 			err = copy_to_user((void *)arg, &enq_data,
 					   sizeof(enq_data)) ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: copy to user space failed.",
 					__func__);
 				return err;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s enquiry: arg pointer is NULL!", __func__);
 			return err;
 		}
 	} break;
 	case NFDEV_IOCTL_ENSUREREADING:
 	case NFDEV_IOCTL_ENSUREREADING_BUG3349: {
-		u32 addr, len;
+		dma_addr_t addr;
+		u32 len;
 		int err = -EIO;
 		int ne;
 
-		nfp_log(NFP_DBG4, "%s: ensure reading", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: ensure reading", __func__);
 
 		/* get and check max length */
 		if ((void *)arg) {
@@ -719,31 +701,31 @@ static int nfp_ioctl(struct inode *inode,
 					     sizeof(u32))
 					     ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: ensure reading: copy from user space failed.",
 					__func__);
 				return err;
 			}
 			/* signal a read to the module */
-			nfp_log(NFP_DBG2,
-				"%s: signalling read request to module, len = %x.",
-				__func__,
-				len);
+			dev_warn(&ndev->pcidev->dev,
+				 "%s: signalling read request to module, len = %x.",
+				 __func__,
+				 len);
 			if (len > NFP_READ_MAX) {
-				nfp_log(NFP_DBG1, "%s: len > %x = %x.",
+				dev_err(&ndev->pcidev->dev, "%s: len > %x = %x.",
 					__func__,
 					NFP_READ_MAX, len);
 				return -EINVAL;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s ensure reading: arg pointer is NULL!",
 				__func__);
 			return err;
 		}
 
 		if (len <= 0 || NFP_READ_MAX < len) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: ensure reading: invalid max length %d/%d",
 				__func__,
 				len, NFP_READ_MAX);
@@ -754,32 +736,32 @@ static int nfp_ioctl(struct inode *inode,
 		/* check if okay to start read */
 
 		if (test_and_set_bit(WAIT_BIT, &ndev->rd_outstanding)) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: ensure reading: another read is outstanding",
 				__func__);
 			return -EBUSY;
 		}
 
-		nfp_log(NFP_DBG2, "%s: ndev->rd_outstanding=1", __func__);
+		dev_warn(&ndev->pcidev->dev,
+			 "%s: ndev->rd_outstanding=1", __func__);
 
 		/* start read ready timeout */
 
 		mod_timer(&ndev->rd_timer, jiffies + (NFP_TIMEOUT_SEC * HZ));
 
-		nfp_log(NFP_DBG2, "%s: read request", __func__);
+		dev_warn(&ndev->pcidev->dev, "%s: read request", __func__);
 		/* start read */
 
 		addr = (ndev->ifvers < NFDEV_IF_PCI_PUSH) ? 0 : ndev->read_dma;
-		nfp_log(NFP_DBG3,
-			"%s: ensure reading: read request with ifvers=%d addr=%p",
-			__func__,
-			ndev->ifvers, addr);
+		dev_notice(&ndev->pcidev->dev,
+			   "%s: ensure reading: read request with ifvers=%d addr=%p",
+			   __func__,
+			   ndev->ifvers, (void *)addr);
 
-		ne = ndev->cmddev->ensure_reading(addr, len,
-						  ndev->cmdctx, 1);
+		ne = ndev->cmddev->ensure_reading(addr, len, ndev->cmdctx, 1);
 
-		if (ne != NFP_SUCCESS) {
-			nfp_log(NFP_DBG1,
+		if (ne != 0) {
+			dev_err(&ndev->pcidev->dev,
 				"%s: ensure reading: read request failed",
 				__func__);
 			del_timer_sync(&ndev->rd_timer);
@@ -795,25 +777,25 @@ static int nfp_ioctl(struct inode *inode,
 	case NFDEV_IOCTL_PCI_IFVERS: {
 		int vers, err = -EIO;
 
-		nfp_log(NFP_DBG4, "%s: set ifvers", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: set ifvers", __func__);
 		if ((void *)arg) {
 			err = copy_from_user(&vers, (void *)arg,
 					     sizeof(vers)) ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: set ifvers: copy from user space failed.",
 					__func__);
 				return err;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s ifvers: arg pointer is NULL!",
 				__func__);
 			return err;
 		}
 
 		if (test_bit(WAIT_BIT, &ndev->rd_outstanding)) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: set ifvers: unable to set interface version while read outstanding",
 				__func__);
 			return -EIO;
@@ -823,50 +805,26 @@ static int nfp_ioctl(struct inode *inode,
 	} break;
 
 	case NFDEV_IOCTL_CHUPDATE:
-		nfp_log(NFP_DBG1, "%s: channel update ignored", __func__);
+		dev_err(&ndev->pcidev->dev,
+			"%s: channel update ignored", __func__);
 		break;
-
-	case NFDEV_IOCTL_DEBUG: {
-		int num, err = -EIO;
-
-		nfp_log(NFP_DBG4, "%s: debug", __func__);
-		if ((void *)arg) {
-			err = copy_from_user(&num, (void *)arg,
-					     sizeof(num)) ? -EFAULT : 0;
-			if (err) {
-				nfp_log(NFP_DBG1,
-					"%s: debug: copy from user space failed.",
-					__func__);
-				return err;
-			}
-		} else {
-			nfp_log(NFP_DBG1,
-				"%s debug: arg pointer is NULL!", __func__);
-			return err;
-		}
-		if (ndev->cmddev->debug)
-			return nfp_oserr(ndev->cmddev->debug(num,
-					 ndev->cmdctx));
-
-		return -EINVAL;
-	} break;
 
 	case NFDEV_IOCTL_STATS: {
 		int err = -EIO;
 
-		nfp_log(NFP_DBG4, "%s: stats", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: stats", __func__);
 		if ((void *)arg) {
 			err = copy_to_user((void *)arg, &ndev->stats,
 					   sizeof(struct nfdev_stats_str))
 					   ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: stats: copy to user space failed.",
 					__func__);
 				return err;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s stats: arg pointer is NULL!", __func__);
 			return err;
 		}
@@ -876,79 +834,78 @@ static int nfp_ioctl(struct inode *inode,
 		int err = -EIO;
 		struct nfdev_control_str control;
 
-		nfp_log(NFP_DBG4, "%s: control", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: control", __func__);
 		if ((void *)arg) {
 			err = copy_from_user(&control, (void *)arg,
 					     sizeof(control)) ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: control: copy from user space failed.",
 					__func__);
 				return err;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s control: arg pointer is NULL!", __func__);
 			return err;
 		}
 		if (!ndev->cmddev->setcontrol) {
-			nfp_log(NFP_DBG2,
-				"%s: control: set control not supported for this device: ignored",
-				__func__);
+			dev_warn(&ndev->pcidev->dev,
+				 "%s: control: set control not supported for this device: ignored",
+				 __func__);
 			return -EINVAL;
 		}
-		nfp_log(NFP_DBG3,
-			"%s: control: updating HSM control register to 0x%x.",
-			__func__,
-			control);
+		dev_notice(&ndev->pcidev->dev,
+			   "%s: control: updating HSM control register to 0x%x.",
+			   __func__,
+			   control.control);
 
-		return nfp_oserr(ndev->cmddev->setcontrol(&control,
-							  ndev->cmdctx));
+		return ndev->cmddev->setcontrol(&control, ndev->cmdctx);
 	} break;
 
 	case NFDEV_IOCTL_STATUS: {
 		int err = -EIO;
 		struct nfdev_status_str status;
 
-		nfp_log(NFP_DBG4, "%s: status", __func__);
+		dev_info(&ndev->pcidev->dev, "%s: status", __func__);
 
 		if (!ndev->cmddev->getstatus) {
-			nfp_log(NFP_DBG2,
-				"%s: status not supported for this device: ignored",
-				__func__);
+			dev_warn(&ndev->pcidev->dev,
+				 "%s: status not supported for this device: ignored",
+				 __func__);
 			return -EINVAL;
 		}
 		err = ndev->cmddev->getstatus(&status,
 					      ndev->cmdctx);
 
 		if (err)
-			return nfp_oserr(err);
+			return err;
 
 		if ((void *)arg) {
 			err = copy_to_user((void *)arg, &status, sizeof(status))
 					   ? -EFAULT : 0;
 			if (err) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: status: copy from user space failed.",
 					__func__);
 				return err;
 			}
 		} else {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s status: arg pointer is NULL!",
 				__func__);
 			return err;
 		}
-		nfp_log(NFP_DBG3,
-			"%s: read status: 0x%x, error: 0x%02x%02x%02x%02x%02x%02x%02x%02x",
-			__func__,
+		dev_notice(&ndev->pcidev->dev,
+			   "%s: read status: 0x%x, error: 0x%02x%02x%02x%02x%02x%02x%02x%02x",
+			   __func__,
 			status.status, status.error[0], status.error[1],
 			status.error[2], status.error[3], status.error[4],
 			status.error[5], status.error[6], status.error[7]);
 	} break;
 
 	default: {
-		nfp_log(NFP_DBG1, "%s: unknown ioctl.", __func__);
+		dev_err(&ndev->pcidev->dev, "%s: unknown ioctl.", __func__);
 		return -EINVAL;
 	} break;
 	}
@@ -972,45 +929,46 @@ static long nfp_unlocked_ioctl(struct file *file,
 	int minor;
 	struct nfp_dev *ndev;
 
-	nfp_log(NFP_DBG2, "%s: entered", __func__);
-
 	minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
-	ndev = nfp_dev_list[minor];
-	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: NULL ndev.", __func__);
+	if (minor >= NFP_MAXDEV) {
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
+
+	ndev = nfp_dev_list[minor];
+	if (!ndev) {
+		pr_err("%s: error: no device", __func__);
+		return -ENODEV;
+	}
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
 	mutex_lock(&ndev->ioctl_mutex);
-
 	ret = nfp_ioctl(NULL, file, cmd, arg);
-
 	mutex_unlock(&ndev->ioctl_mutex);
-	nfp_log(NFP_DBG2, "%s: left", __func__);
+
+	dev_info(&ndev->pcidev->dev, "%s: left", __func__);
 	return ret;
 }
 
 static irqreturn_t nfp_isr(int irq, void *context)
 {
-	struct nfp_dev *ndev;
+	struct nfp_dev *ndev = (struct nfp_dev *)context;
 	int handled;
 	int ne;
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
-	ndev = (struct nfp_dev *)context;
+	/* check for device */
 	if (!ndev) {
-		nfp_log(NFP_DBG1,
-			"%s: no device associated with this interrupt",
-			__func__);
+		pr_err("%s: error: no device", __func__);
 		return IRQ_NONE;
 	}
 
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
 	ne = ndev->cmddev->isr(ndev->cmdctx, &handled);
 
-	if (ne)
-		nfp_log(NFP_DBG1, "%s: cmddev isr failed (%d)",
-			__func__,
-			nfp_oserr(ne));
+	if (ne != 0)
+		dev_err(&ndev->pcidev->dev, "%s: cmddev isr failed (%d)",
+			__func__, ne);
 
 	return IRQ_RETVAL(handled);
 }
@@ -1032,28 +990,29 @@ static int nfp_open(struct inode *inode, struct file *file)
 	int ne;
 	int minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
-	nfp_log(NFP_DBG3, "%s: opening file at %p.", __func__, file);
-
 	/* find ndev */
 
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return -ENODEV;
 	}
 
 	ndev = nfp_dev_list[minor];
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: cannot find dev %d.", __func__, minor);
+		pr_err("%s: cannot find dev %d.", __func__, minor);
 		return -ENODEV;
 	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
+	dev_notice(&ndev->pcidev->dev,
+		   "%s: opening file at %p.", __func__, file);
 
 	/* check if alreayd open */
 
 	spin_lock(&ndev->spinlock);
 	if (ndev->busy) {
-		nfp_log(NFP_DBG1, "%s: device %s busy", __func__,
+		dev_err(&ndev->pcidev->dev, "%s: device %s busy", __func__,
 			pci_name(ndev->pcidev));
 		spin_unlock(&ndev->spinlock);
 		return -EBUSY;
@@ -1072,23 +1031,23 @@ static int nfp_open(struct inode *inode, struct file *file)
 	else
 		nfp_set_ifvers(ndev, NFDEV_IF_STANDARD);
 
-	nfp_log(NFP_DBG3, "%s: ifvers set to %d", __func__, ndev->ifvers);
+	dev_notice(&ndev->pcidev->dev,
+		   "%s: ifvers set to %d", __func__, ndev->ifvers);
 
 	/* open device */
 
 	ne = ndev->cmddev->open(ndev->cmdctx);
-	if (ne != NFP_SUCCESS) {
-		nfp_log(NFP_DBG1, "%s: device open failed: error %d",
-			__func__,
-			nfp_oserr(ne));
+	if (ne != 0) {
+		dev_err(&ndev->pcidev->dev, "%s: device open failed: error %d",
+			__func__, ne);
 		spin_lock(&ndev->spinlock);
 		ndev->busy = 0;
 		spin_unlock(&ndev->spinlock);
-		return nfp_oserr(ne);
+		return ne;
 	}
 
-	nfp_log(NFP_DBG2, "%s: device %s open",
-		__func__, pci_name(ndev->pcidev));
+	dev_warn(&ndev->pcidev->dev, "%s: device %s open",
+		 __func__, pci_name(ndev->pcidev));
 
 	return 0;
 }
@@ -1111,22 +1070,21 @@ static int nfp_release(struct inode *node, struct file *file)
 	int ne;
 	int minor = MINOR(INODE_FROM_FILE(file)->i_rdev);
 
-	nfp_log(NFP_DBG4, "%s: entered", __func__);
-
-	nfp_log(NFP_DBG2, "%s: closing file at %p.", __func__, file);
-
 	/* find ndev from minor */
-
 	if (minor >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		pr_err("%s: minor out of range.", __func__);
 		return(-ENODEV);
 	}
 
 	ndev = nfp_dev_list[minor];
 	if (!ndev) {
-		nfp_log(NFP_DBG1, "%s: cannot find dev.", __func__);
-		return(-ENODEV);
+		pr_err("%s: error: no device", __func__);
+		return -ENODEV;
 	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
+	dev_warn(&ndev->pcidev->dev, "%s: closing file at %p.", __func__, file);
 
 	{
 		wait_queue_entry_t wait;
@@ -1136,14 +1094,16 @@ static int nfp_release(struct inode *node, struct file *file)
 		current->state = TASK_UNINTERRUPTIBLE;
 		add_wait_queue(&ndev->rd_queue, &wait);
 		if (test_bit(WAIT_BIT, &ndev->rd_outstanding)) {
-			nfp_log(NFP_DBG2, "%s: read outstanding", __func__);
+			dev_info(&ndev->pcidev->dev,
+				 "%s: read outstanding", __func__);
 			timeout = schedule_timeout(NFP_TIMEOUT);
-			nfp_log(NFP_DBG3, "%s: finished waiting", __func__);
+			dev_info(&ndev->pcidev->dev,
+				 "%s: finished waiting", __func__);
 		}
 		current->state = TASK_RUNNING;
 		remove_wait_queue(&ndev->rd_queue, &wait);
 		if (!timeout) {
-			nfp_log(NFP_DBG1,
+			dev_err(&ndev->pcidev->dev,
 				"%s: outstanding read timed out", __func__);
 		}
 	}
@@ -1163,9 +1123,10 @@ static int nfp_release(struct inode *node, struct file *file)
 	/* close device */
 
 	ne = ndev->cmddev->close(ndev->cmdctx);
-	if (ne != NFP_SUCCESS) {
-		nfp_log(NFP_DBG1, "%s: device close failed", __func__);
-		return nfp_oserr(ne);
+	if (ne != 0) {
+		dev_err(&ndev->pcidev->dev,
+			"%s: device close failed", __func__);
+		return ne;
 	}
 
 	return(0);
@@ -1195,29 +1156,35 @@ static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 {
 	int i;
 
-	nfp_log(NFP_DBG2, "%s: entered", __func__);
+	/* check for device */
+	if (!ndev) {
+		pr_err("%s: error: no device", __func__);
+		return;
+	}
+
+	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 	if (ndev) {
 		nfp_free_pci_push(ndev);
 		nfp_free_pci_pull(ndev);
 
 		if (ndev->irq) {
-			nfp_log(NFP_DBG3, "%s: freeing irq, %x",
-				__func__,
-				ndev->irq);
+			dev_notice(&ndev->pcidev->dev, "%s: freeing irq, %x",
+				   __func__,
+				   ndev->irq);
 			free_irq(ndev->irq, ndev);
 		}
 		for (i = 0; i < 6; i++)
 			if (ndev->bar[i]) {
-				nfp_log(NFP_DBG3,
-					"%s: freeing MEM BAR, %d",
-					__func__, i);
+				dev_notice(&ndev->pcidev->dev,
+					   "%s: freeing MEM BAR, %d",
+					   __func__, i);
 				release_mem_region(pci_resource_start(pci_dev,
 								      i),
 						   pci_resource_len(pci_dev,
 								    i));
 				iounmap(ndev->bar[i]);
 			}
-		nfp_log(NFP_DBG3, "%s: freeing ndev", __func__);
+		dev_notice(&ndev->pcidev->dev, "%s: freeing ndev", __func__);
 		kfree(ndev);
 	}
 }
@@ -1229,38 +1196,40 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 	int ne;
 	int i;
 
-	nfp_log(NFP_DBG2, "%s: Found '%s' at bus %x, slot %x, irq %d.",
-		__func__,
-		cmddev->name, bus, slot, irq_line);
+	dev_warn(&pcidev->dev,
+		 "%s: Found '%s' at bus %x, slot %x, irq %d.",
+		 __func__,
+		 cmddev->name, bus, slot, irq_line);
 
 	if (nfp_num_devices >= NFP_MAXDEV) {
-		nfp_log(NFP_DBG1, "%s: minor out of range.", __func__);
+		dev_err(&pcidev->dev,
+			"%s: minor out of range.", __func__);
 		goto fail_continue;
 	}
 
 	ndev = kzalloc(sizeof(*ndev), GFP_KERNEL);
 	if (!ndev) {
-		nfp_log(NFP_DBG1,
-			"%s: failed to allocate device structure.", __func__);
+		/* logged by the allocator */
 		goto fail_continue;
 	}
-	nfp_log(NFP_DBG2, "%s: allocated device structure.", __func__);
+	dev_warn(&pcidev->dev,
+		 "%s: allocated device structure.", __func__);
 
 	ndev->busno = bus;
 	ndev->pcidev = pcidev;
 	ndev->slotno = slot;
 	ndev->cmddev = cmddev;
 
-	for (i = 0; i < 6; i++) {
-		int map_bar_size = cmddev->bar_sizes[i] & NFP_MEMBAR_MASK;
-		int bar_flags = cmddev->bar_sizes[i] & ~NFP_MEMBAR_MASK;
+	for (i = 0; i < NFP_BARSIZES_COUNT; i++) {
+		int map_bar_size = cmddev->bar_sizes[i] & NFP_BARSIZES_MASK;
+		int bar_flags = cmddev->bar_sizes[i] & ~NFP_BARSIZES_MASK;
 
 		if (map_bar_size) {
 			if (!request_mem_region(pci_resource_start(pcidev, i),
 						pci_resource_len(pcidev, i),
 						cmddev->name)) {
-				nfp_log(NFP_DBG1,
-					"%s: request_mem_region failed, %x %x %d (%s)",
+				dev_err(&ndev->pcidev->dev,
+					"%s: request_mem_region failed, %llx %llx %d (%s)",
 					__func__,
 					pci_resource_start(pcidev, i),
 					pci_resource_len(pcidev, i), i,
@@ -1277,7 +1246,7 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 			}
 
 			if (!ndev->bar[i]) {
-				nfp_log(NFP_DBG1,
+				dev_err(&ndev->pcidev->dev,
 					"%s: unable to map memory BAR %d, (0x%x).",
 					__func__,
 					i, bar[i]);
@@ -1296,15 +1265,16 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 	ndev->spinlock = __SPIN_LOCK_UNLOCKED(ndev->spinlock);
 
 	ne = ndev->cmddev->create(ndev);
-	if (ne != NFP_SUCCESS) {
-		nfp_log(NFP_DBG1,
-			"%s: failed to create command device (%d)", __func__,
-			nfp_oserr(ne));
+	if (ne != 0) {
+		dev_err(&ndev->pcidev->dev,
+			"%s: failed to create command device (%d)",
+			__func__, ne);
 		goto fail_continue;
 	}
 
 	if (request_irq(irq_line, nfp_isr, IRQF_SHARED, cmddev->name, ndev)) {
-		nfp_log(NFP_DBG1, "%s: unable to claim interrupt.", __func__);
+		dev_err(&ndev->pcidev->dev,
+			"%s: unable to claim interrupt.", __func__);
 		goto fail_continue;
 	}
 	ndev->irq = irq_line;
@@ -1314,23 +1284,15 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 	pci_set_drvdata(pcidev, ndev);
 
 	/* setup timeout timer */
-#if defined(timer_setup)
 	timer_setup(&ndev->rd_timer, nfp_read_timeout, 0);
 	mod_timer(&ndev->rd_timer, jiffies + (NFP_TIMEOUT_SEC * HZ));
-#else
-	init_timer(&ndev->rd_timer);
-	ndev->rd_timer.function = nfp_read_timeout;
-	ndev->rd_timer.data = (u64)ndev;
-	ndev->rd_timer.expires = jiffies + (NFP_TIMEOUT_SEC * HZ);
-#endif
 
 	nfp_dev_list[nfp_num_devices] = ndev;
 	device_create(nfp_class, NULL, /* parent */
 		      MKDEV(NFP_MAJOR, nfp_num_devices), NULL, /* drvdata */
 		      "nshield_solo%d", nfp_num_devices);
-	nfp_log(NFP_DBG2, "%s: nfp_num_devices= %d, ndev = %p.",
-		__func__,
-		nfp_num_devices, ndev);
+	dev_warn(&ndev->pcidev->dev, "%s: nfp_num_devices= %d, ndev = %p.",
+		 __func__, nfp_num_devices, ndev);
 	nfp_num_devices++;
 	return 1;
 
@@ -1361,22 +1323,21 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 	u64 iosize;
 	u32 irq_line;
 	int pos = 0u;
-	int err = NFP_SUCCESS;
+	int err = 0;
 
 	if (!pcidev || !id) {
-		nfp_log(NFP_DBG1, "%s: pcidev or id was NULL!", __func__);
+		pr_err("%s: pcidev or id was NULL!", __func__);
 		return -ENODEV;
 	}
 
-	nfp_log(NFP_DBG3, "%s: probing PCI device %s",
-		__func__,
-		pci_name(pcidev));
+	dev_notice(&pcidev->dev, "%s: probing PCI device %s",
+		   __func__, pci_name(pcidev));
 
 	/* enable the device */
-
 	err = pci_enable_device(pcidev);
 	if (err) {
-		nfp_log(NFP_DBG1, "%s: pci_enable_device failed", __func__);
+		dev_err(&pcidev->dev,
+			"%s: pci_enable_device failed", __func__);
 		err = -ENODEV;
 		goto probe_err;
 	}
@@ -1384,13 +1345,12 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 	pci_set_master(pcidev);
 
 	/* save PCI device info */
-
 	irq_line = pcidev->irq;
 	for (i = 0; i < NFP_BARSIZES_COUNT; ++i) {
 		iosize = cmddev->bar_sizes[i] & NFP_BARSIZES_MASK;
 		if (pci_resource_len(pcidev, i) < iosize) {
-			nfp_log(NFP_DBG1,
-				"%s: %s region request overflow: bar %d, requested %x, maximum %x",
+			dev_err(&pcidev->dev,
+				"%s: %s region request overflow: bar %d, requested %llx, maximum %llx",
 				__func__,
 				pci_name(pcidev), i, iosize,
 				pci_resource_len(pcidev, i));
@@ -1403,19 +1363,19 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 	if (cmddev->flags & NFP_CMD_FLG_NEED_MSI) {
 		pos = pci_find_capability(pcidev, PCI_CAP_ID_MSI);
 		if (!pos) {
-			nfp_log(NFP_DBG1, "%s: %s MSI not supported",
+			dev_err(&pcidev->dev, "%s: %s MSI not supported",
 				__func__,
 				pci_name(pcidev));
 			err = -ENODEV;
 			goto probe_err;
 		}
-		nfp_log(NFP_DBG1, "%s: %s MSI support at %d",
+		dev_err(&pcidev->dev, "%s: %s MSI support at %d",
 			__func__,
 			pci_name(pcidev), pos);
 
 		err = pci_enable_msi(pcidev);
 		if (err) {
-			nfp_log(NFP_DBG1,
+			dev_err(&pcidev->dev,
 				"%s: %s unable to enable MSI",
 				__func__,
 				pci_name(pcidev));
@@ -1424,14 +1384,14 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 
 		/* IRQ vector changes if MSI is enabled. */
 		irq_line = pcidev->irq;
-		nfp_log(NFP_DBG3, "%s: %s MSI IRQ at %d",
-			__func__,
-			pci_name(pcidev), irq_line);
+		dev_notice(&pcidev->dev, "%s: %s MSI IRQ at %d",
+			   __func__,
+			   pci_name(pcidev), irq_line);
 	}
 
-	nfp_log(NFP_DBG2, "%s: devname %s, slotname %s, busname %s",
-		__func__, "",
-		pci_name(pcidev), pcidev->bus->name);
+	dev_warn(&pcidev->dev, "%s: devname %s, slotname %s, busname %s",
+		 __func__, "",
+		 pci_name(pcidev), pcidev->bus->name);
 
 	err = nfp_setup(cmddev, pcidev->bus->number, PCI_SLOT(pcidev->devfn),
 			bar, irq_line, pcidev);
@@ -1461,7 +1421,7 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 	int index;
 	struct nfp_dev *ndev;
 
-	nfp_log(NFP_DBG1, "%s: removing PCI device %s",
+	dev_err(&pcidev->dev, "%s: removing PCI device %s",
 		__func__,
 		pci_name(pcidev));
 
@@ -1469,7 +1429,7 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 
 	ndev = pci_get_drvdata(pcidev);
 	if (!ndev) {
-		nfp_log(NFP_DBG1,
+		dev_err(&pcidev->dev,
 			"%s: no NSHIELD SOLO device associated with this PCI device",
 			__func__);
 		return;
@@ -1498,7 +1458,7 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 
 /**
  * PCI device ID table.  We use the driver_data field to hold an index into
- * nfp_drvlist, so bear than in mind when editing eiher.
+ * nfp_drvlist, so bear than in mind when editing either.
  */
 static struct pci_device_id nfp_pci_tbl[] = {
 	{
@@ -1535,11 +1495,10 @@ static int nfp_init(void)
 {
 	int index;
 
-	nfp_log(NFP_DBG1, "%s: entered", __func__);
+	pr_info("%s: entered", __func__);
 
 	if (register_chrdev(NFP_MAJOR, NFP_DRVNAME, &nfp_fops)) {
-		nfp_log(NFP_DBG1,
-			"unable to get major for nshield_solo device.");
+		pr_err("unable to get major for nshield_solo device.");
 		return -EIO;
 	}
 
@@ -1548,10 +1507,8 @@ static int nfp_init(void)
 
 	nfp_class = class_create(THIS_MODULE, "nshield_solo");
 	if (IS_ERR(nfp_class)) {
-		nfp_log(NFP_DBG1,
-			"%s: failed to create a class for this device, err = %ld",
-			__func__,
-			PTR_ERR(nfp_class));
+		pr_err("%s: failed to create a class for this device, err = %ld",
+		       __func__, PTR_ERR(nfp_class));
 		return -EIO;
 	}
 
@@ -1568,7 +1525,7 @@ static int __init nfp_module_init(void)
 {
 	int err;
 
-	nfp_log(NFP_DBG1, "%s: inserting nshield_solo module", __func__);
+	pr_err("%s: inserting nshield_solo module", __func__);
 
 	err = nfp_init();
 
@@ -1580,7 +1537,7 @@ static int __init nfp_module_init(void)
  */
 static void __exit nfp_module_exit(void)
 {
-	nfp_log(NFP_DBG3, "%s: removing nshield_solo module", __func__);
+	pr_notice("%s: removing nshield_solo module", __func__);
 
 	/* unregister pci driver */
 
@@ -1590,7 +1547,7 @@ static void __exit nfp_module_exit(void)
 	class_destroy(nfp_class);
 
 	unregister_chrdev(NFP_MAJOR, NFP_DRVNAME);
-	nfp_log(NFP_DBG1, "%s: removed nshield_solo module", __func__);
+	pr_notice("%s: removed nshield_solo module", __func__);
 }
 
 module_init(nfp_module_init);
