@@ -59,10 +59,6 @@ int nfp_config_inl(struct nfp_dev *ndev, int offset, u32 *res)
 static int i21555_started(struct nfp_dev *ndev)
 {
 	u32 tmp32;
-#ifdef CONFIGSPACE_DEBUG
-	u32 reg32[64];
-	int i;
-#endif
 	int ne;
 
 	/* check for device */
@@ -72,21 +68,6 @@ static int i21555_started(struct nfp_dev *ndev)
 	}
 
 	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
-
-#ifdef CONFIGSPACE_DEBUG
-	/* Suck up all the registers */
-	for (i = 0; i < 64; i++)
-		ne = nfp_config_inl(ndev, i * 4, &reg32[i]);
-
-	for (i = 0; i < 16; i++) {
-		int j = i * 4;
-
-		dev_notice(&ndev->pcidev->dev,
-			   "i21555 config reg %2x: %08x %08x %08x %08x",
-			   j * 4, reg32[j], reg32[j + 1], reg32[j + 2],
-			   reg32[j + 3]);
-	}
-#endif
 
 	ne = nfp_config_inl(ndev, I21555_CFG_SEC_CMD_STATUS, &tmp32);
 	if (ne != 0) {
@@ -141,9 +122,9 @@ static int i21555_create(struct nfp_dev *ndev)
 
 /* stop ------------------------------------------------------- */
 
-static int i21555_destroy(void *ctx)
+static int i21555_destroy(struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 tmp32;
 
 	/* check for device */
@@ -172,9 +153,9 @@ static int i21555_destroy(void *ctx)
 
 /* open ------------------------------------------------------- */
 
-static int i21555_open(void *ctx)
+static int i21555_open(struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 
 	/* check for device */
 	if (!ndev) {
@@ -189,9 +170,9 @@ static int i21555_open(void *ctx)
 
 /* close ------------------------------------------------------- */
 
-static int i21555_close(void *ctx)
+static int i21555_close(struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 
 	/* check for device */
 	if (!ndev) {
@@ -206,9 +187,9 @@ static int i21555_close(void *ctx)
 
 /* isr ------------------------------------------------------- */
 
-static int i21555_isr(void *ctx, int *handled)
+static int i21555_isr(struct nfp_dev *ctx, int *handled)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u16 doorbell;
 	u16 tmp16;
 
@@ -290,9 +271,10 @@ static int i21555_isr(void *ctx, int *handled)
 
 /* write ------------------------------------------------------- */
 
-static int i21555_write(u32 addr, const char *block, int len, void *ctx)
+static int i21555_write(u32 addr, const char *block, int len,
+			struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 hdr[2];
 	int ne;
 	u16 tmp16;
@@ -371,9 +353,9 @@ static int i21555_write(u32 addr, const char *block, int len, void *ctx)
 
 /* read ------------------------------------------------------- */
 
-static int i21555_read(char *block, int len, void *ctx, int *rcount)
+static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 	int count;
 
@@ -437,9 +419,9 @@ static int i21555_read(char *block, int len, void *ctx, int *rcount)
 /* ensure reading -------------------------------------------------- */
 
 static int i21555_ensure_reading(dma_addr_t addr,
-				 int len, void *ctx, int lock_flag)
+				 int len, struct nfp_dev *ctx, int lock_flag)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 hdr[3];
 	u16 tmp16;
 	u32 tmp32;
@@ -524,9 +506,9 @@ static int i21555_ensure_reading(dma_addr_t addr,
 /* set control register ----------------------------------------- */
 
 static int i21555_set_control(const struct nfdev_control_str *control,
-			      void *ctx)
+			      struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 control_flipped;
 
 	/* check for device */
@@ -549,9 +531,10 @@ static int i21555_set_control(const struct nfdev_control_str *control,
 
 /* get status/error registers ----------------------------------- */
 
-static int i21555_get_status(struct nfdev_status_str *status, void *ctx)
+static int i21555_get_status(struct nfdev_status_str *status,
+			     struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 status_flipped;
 	u32 *error = (u32 *)status->error;
 

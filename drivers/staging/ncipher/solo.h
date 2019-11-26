@@ -223,7 +223,7 @@ struct nfp_dev {
 	void *extra[NFP_BARSIZES_COUNT];
 	int busno;
 	int slotno;
-	void *cmdctx;
+	struct nfp_dev *cmdctx;
 	char *iobuf;
 	int active_bar;
 	int created;
@@ -269,18 +269,20 @@ struct nfpcmd_dev {
 	u32 flags, max_ifvers;
 
 	int (*create)(struct nfp_dev *ndev);
-	int (*destroy)(void *ctx);
-	int (*open)(void *ctx);
-	int (*close)(void *ctx);
-	int (*isr)(void *ctx, int *handled);
-	int (*write_block)(u32 addr, const char *ublock, int len, void *ctx);
-	int (*read_block)(char *ublock, int len, void *ctx, int *rcount);
+	int (*destroy)(struct nfp_dev *ctx);
+	int (*open)(struct nfp_dev *ctx);
+	int (*close)(struct nfp_dev *ctx);
+	int (*isr)(struct nfp_dev *ctx, int *handled);
+	int (*write_block)(u32 addr,
+			   const char *ublock, int len, struct nfp_dev *ctx);
+	int (*read_block)(char *ublock,
+			  int len, struct nfp_dev *ctx, int *rcount);
 	int (*ensure_reading)(dma_addr_t addr,
-			      int len, void *ctx, int lock_flag);
+			      int len, struct nfp_dev *ctx, int lock_flag);
 	int (*setcontrol)(const struct nfdev_control_str *control,
-			  void *ctx); /* may be NULL */
+			  struct nfp_dev *ctx); /* may be NULL */
 	int (*getstatus)(struct nfdev_status_str *status,
-			 void *ctx); /* may be NULL */
+			 struct nfp_dev *ctx); /* may be NULL */
 };
 
 /* These instances are defined in the per-board driver modules */

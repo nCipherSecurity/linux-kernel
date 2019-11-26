@@ -8,9 +8,6 @@
 #include "solo.h"
 #include "fsl.h"
 
-/* If defined, use aggressive checking for errors. */
-#define FSL_AGRESSIVE_CHECKING 0
-
 /**
  * Resets FSL device.
  *
@@ -83,13 +80,13 @@ static int fsl_create(struct nfp_dev *ndev)
  * @param ctx device context (always the device itself).
  * @returns 0 if successful, other value if error.
  */
-static int fsl_destroy(void *ctx)
+static int fsl_destroy(struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev;
 	u32 tmp32;
 
 	/* check for device */
-	ndev = (struct nfp_dev *)ctx;
+	ndev = ctx;
 	if (!ndev) {
 		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
@@ -332,14 +329,11 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
  * @param handled set non-zero by this routine if interrupt considered handled
  * @returns 0 if successful, other value if error.
  */
-static int fsl_isr(void *ctx, int *handled)
+static int fsl_isr(struct nfp_dev *ctx, int *handled)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 	u32 doorbell_rd, doorbell_wr, doorbell_cs;
-#ifdef FSL_AGRESSIVE_CHECKING
-	int x_wr = 0, x_rd = 0, x_cs = 0;
-#endif
 	/* check for device */
 	if (!ndev) {
 		pr_err("%s: error: no device", __func__);
@@ -433,16 +427,6 @@ static int fsl_isr(void *ctx, int *handled)
 				__func__,
 				doorbell_wr & NFAST_INT_DEVICE_WRITE_OK ? 1 :
 				0);
-
-#ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS) !=
-			    NFAST_INT_DEVICE_CLR) {
-				dev_err(&ndev->pcidev->dev,
-					"%s: failed to clear doorbell write status",
-					__func__);
-			}
-			++x_wr;
-#endif
 		}
 
 		if (doorbell_rd) {
@@ -456,16 +440,6 @@ static int fsl_isr(void *ctx, int *handled)
 				   "%s: acknowledging read interrupt: ok = %d",
 				__func__,
 				doorbell_rd & NFAST_INT_DEVICE_READ_OK ? 1 : 0);
-
-#ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS) !=
-			    NFAST_INT_DEVICE_CLR) {
-				dev_err(&ndev->pcidev->dev,
-					"%s: failed to clear doorbell read status",
-					__func__);
-			}
-			++x_rd;
-#endif
 		}
 		/* the doorbell_cs is being phased out in favor of polling since
 		 * there were issues caused by this interrupt being issued from
@@ -489,16 +463,6 @@ static int fsl_isr(void *ctx, int *handled)
 				   doorbell_cs & NFAST_INT_DEVICE_CHECK_OK ?
 					0 :
 					NFP_HSM_STARTING);
-
-#ifdef FSL_AGRESSIVE_CHECKING
-			if (fsl_inl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS) !=
-			    NFAST_INT_DEVICE_CLR) {
-				dev_err(&ndev->pcidev->dev,
-					"%s: warning: failed to clear doorbell check status",
-					__func__);
-			}
-			++x_cs;
-#endif
 		}
 
 		doorbell_wr = fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS);
@@ -513,25 +477,8 @@ static int fsl_isr(void *ctx, int *handled)
 	}
 
 	/* always report the interrupt as handled */
-
 	*handled = 1;
-#ifdef FSL_AGRESSIVE_CHECKING
-	if (x_wr + x_rd + x_cs == 0) {
-		dev_warn(&ndev->pcidev->dev,
-			 "%s: no operations handled by this ISR call",
-			__func__);
-	} else {
-		if (x_wr + x_rd + x_cs > 1) {
-			dev_notice(&ndev->pcidev->dev,
-				   "%s: DEBUG: multiple operations handled by this ISR call: wr=%d, rd=%d, cs=%d",
-				   __func__, x_wr, x_rd, x_cs);
-		} else {
-			dev_notice(&ndev->pcidev->dev,
-				   "%s: DEBUG: one operation handled by this ISR call: wr=%d, rd=%d, cs=%d",
-				   __func__, x_wr, x_rd, x_cs);
-		}
-	}
-#endif
+
 	dev_notice(&ndev->pcidev->dev, "%s: exiting", __func__);
 
 	return 0;
@@ -545,9 +492,9 @@ static int fsl_isr(void *ctx, int *handled)
  * @param ctx device context (always the device itself).
  * @returns 0 if successful, other value if error.
  */
-static int fsl_open(void *ctx)
+static int fsl_open(struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 
 	/* check for device */
@@ -577,9 +524,9 @@ static int fsl_open(void *ctx)
  * @param ctx device context (always the device itself).
  * @returns 0 if successful, other value if error.
  */
-static int fsl_close(void *ctx)
+static int fsl_close(struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 
 	/* check for device */
 	if (!ndev) {
@@ -601,10 +548,11 @@ static int fsl_close(void *ctx)
  * @param ctx device context (always the device itself).
  * @returns 0 if successful, other value if error.
  */
-static int fsl_set_control(const struct nfdev_control_str *control, void *ctx)
+static int fsl_set_control(const struct nfdev_control_str *control,
+			   struct nfp_dev *ctx)
 {
 	u32 control_data;
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 
 	/* check for device */
@@ -649,9 +597,9 @@ static int fsl_set_control(const struct nfdev_control_str *control, void *ctx)
  * @param ctx device context (always the device itself).
  * @returns 0 if successful, other value if error.
  */
-static int fsl_get_status(struct nfdev_status_str *status, void *ctx)
+static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 	u32 status_data;
 	u32 *error = (uint32_t *)status->error;
@@ -696,9 +644,9 @@ static int fsl_get_status(struct nfdev_status_str *status, void *ctx)
  * or other value if error.
  */
 static int fsl_ensure_reading(dma_addr_t addr,
-			      int len, void *ctx, int lock_flag)
+			      int len, struct nfp_dev *ctx, int lock_flag)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 hdr[3];
 	u32 tmp32;
 	int ne;
@@ -794,9 +742,9 @@ static int fsl_ensure_reading(dma_addr_t addr,
  * @returns 0 if read initiated, NFP_HSM_STARTING if device not ready,
  * or other value if error.
  */
-static int fsl_read(char *block, int len, void *ctx, int *rcnt)
+static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	int ne;
 	int cnt;
 
@@ -873,9 +821,9 @@ static int fsl_read(char *block, int len, void *ctx, int *rcnt)
  * @returns 0 if write successful, NFP_HSM_STARTING if device not
  * ready, or other value if error.
  */
-static int fsl_write(u32 addr, char const *block, int len, void *ctx)
+static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 {
-	struct nfp_dev *ndev = (struct nfp_dev *)ctx;
+	struct nfp_dev *ndev = ctx;
 	u32 hdr[3];
 	int ne;
 	u32 tmp32;
