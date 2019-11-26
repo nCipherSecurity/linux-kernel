@@ -1,7 +1,11 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
+ *
  * Interfaces to the Solo's Intel 21555 bridge
+ * Copyright 2019 nCipher Security Ltd
+ *
  */
+
 #ifndef NFP_I21555_H
 #define NFP_I21555_H
 

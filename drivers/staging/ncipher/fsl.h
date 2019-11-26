@@ -1,6 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
-/**
+/*
+ *
  * Interface to the Solo XC's T1022 communication processor
+ * Copyright 2019 nCipher Security Ltd
+ *
  */
 
 #ifndef NFP_FSL_H

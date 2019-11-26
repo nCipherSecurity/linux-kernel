@@ -2,6 +2,7 @@
 /*
  *
  * i21555.c: nCipher PCI HSM intel 21555 command driver
+ * Copyright 2019 nCipher Security Ltd
  *
  */
 
@@ -28,17 +29,15 @@ u16 nfp_inw(struct nfp_dev *ndev, int bar, int offset)
 
 void nfp_outl(struct nfp_dev *ndev, int bar, int offset, u32 data)
 {
-	dev_info(&ndev->pcidev->dev,
-		 "%s: addr %p, data %x", __func__,
-		 ndev->bar[bar] + offset, data);
+	dev_info(&ndev->pcidev->dev, "%s: addr %p, data %x",
+		 __func__, ndev->bar[bar] + offset, data);
 	iowrite32(data, ndev->bar[bar] + offset);
 }
 
 void nfp_outw(struct nfp_dev *ndev, int bar, int offset, u16 data)
 {
-	dev_info(&ndev->pcidev->dev,
-		 "%s: addr %p, data %x", __func__,
-		 ndev->bar[bar] + offset, data);
+	dev_info(&ndev->pcidev->dev, "%s: addr %p, data %x",
+		 __func__, ndev->bar[bar] + offset, data);
 	iowrite16(data, ndev->bar[bar] + offset);
 }
 
@@ -72,8 +71,7 @@ static int i21555_started(struct nfp_dev *ndev)
 	ne = nfp_config_inl(ndev, I21555_CFG_SEC_CMD_STATUS, &tmp32);
 	if (ne != 0) {
 		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_config_inl failed",
-			__func__);
+			"%s: nfp_config_inl failed", __func__);
 		return ne;
 	}
 
@@ -83,9 +81,8 @@ static int i21555_started(struct nfp_dev *ndev)
 		dev_notice(&ndev->pcidev->dev,
 			   "%s: Yes %x", __func__, tmp32);
 	} else {
-		dev_err(&ndev->pcidev->dev,
-			"%s: device not started yet %x", __func__,
-			tmp32);
+		dev_err(&ndev->pcidev->dev, "%s: device not started yet %x",
+			__func__, tmp32);
 		ne = -EAGAIN;
 	}
 	return ne;
@@ -109,8 +106,8 @@ static int i21555_create(struct nfp_dev *ndev)
 	ndev->cmdctx = ndev;
 
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 	dev_warn(&ndev->pcidev->dev, "%s: enable doorbell", __func__);
@@ -140,8 +137,8 @@ static int i21555_destroy(struct nfp_dev *ctx)
 		return -ENODEV;
 	}
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 	tmp32 = cpu_to_le32(I21555_DOORBELL_PRI_DISABLE);
@@ -206,8 +203,8 @@ static int i21555_isr(struct nfp_dev *ctx, int *handled)
 	ndev->stats.isr++;
 
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 
@@ -291,8 +288,8 @@ static int i21555_write(u32 addr, const char *block, int len,
 	ndev->stats.write_fail++;
 
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 
@@ -371,8 +368,8 @@ static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 	ndev->stats.read_fail++;
 
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 
@@ -380,8 +377,7 @@ static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 	if (ne != 0) {
 		if (ne != -EAGAIN)
 			dev_err(&ndev->pcidev->dev,
-				"%s: i21555_started failed",
-				__func__);
+				"%s: i21555_started failed", __func__);
 
 		return ne;
 	}
@@ -395,17 +391,15 @@ static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 	}
 	count = le32_to_cpu(count);
 	if (count < 0 || count > len) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: bad byte count (%d) from device", __func__,
-			count);
+		dev_err(&ndev->pcidev->dev, "%s: bad byte count (%d) from device",
+			__func__, count);
 		return -EIO;
 	}
 	ne = nfp_copy_to_user_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_DATA,
 				       block, count);
 	if (ne != 0) {
 		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_to_user_from_dev failed",
-			__func__);
+			"%s: nfp_copy_to_user_from_dev failed", __func__);
 		return ne;
 	}
 	dev_warn(&ndev->pcidev->dev, "%s: done", __func__);
@@ -439,8 +433,8 @@ static int i21555_ensure_reading(dma_addr_t addr,
 	ndev->stats.ensure_fail++;
 
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]", __func__,
-			CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 
@@ -448,8 +442,7 @@ static int i21555_ensure_reading(dma_addr_t addr,
 	if (ne != 0) {
 		if (ne != -EAGAIN) {
 			dev_err(&ndev->pcidev->dev,
-				"%s: i21555_started failed", __func__
-				);
+				"%s: i21555_started failed", __func__);
 		}
 		return ne;
 	}
@@ -459,8 +452,7 @@ static int i21555_ensure_reading(dma_addr_t addr,
 	dev_notice(&ndev->pcidev->dev, "%s: ndev->bar[ CSR_BAR ]= %p", __func__,
 		   ndev->bar[CSR_BAR]);
 	if (addr) {
-		dev_notice(&ndev->pcidev->dev,
-			   "%s: new format, addr %p",
+		dev_notice(&ndev->pcidev->dev, "%s: new format, addr %p",
 			   __func__, (void *)addr);
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL_PCI_PUSH);
 		hdr[1] = cpu_to_le32(len);
@@ -519,8 +511,8 @@ static int i21555_set_control(const struct nfdev_control_str *control,
 
 	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
 	if (!ndev->bar[CSR_BAR]) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: null BAR[%d]", __func__, CSR_BAR);
+		dev_err(&ndev->pcidev->dev, "%s: null BAR[%d]",
+			__func__, CSR_BAR);
 		return -ENOMEM;
 	}
 	control_flipped = cpu_to_le32(control->control);

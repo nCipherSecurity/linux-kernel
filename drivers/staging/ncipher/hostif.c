@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0+
-
-/** @file
+/*
  *
  * hostif.c: nCipher PCI HSM linux host interface
+ * Copyright 2019 nCipher Security Ltd
  *
  */
 
@@ -167,8 +167,7 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 	ndev->wr_ok = ok;
 
 	dev_notice(&ndev->pcidev->dev, "%s: write completed %sokay",
-		   __func__,
-		   ok ? "" : "not ");
+		   __func__, ok ? "" : "not ");
 
 	/* make sure that write is complete before we clear wr_outstanding */
 	smp_mb__before_atomic();
@@ -335,8 +334,7 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 	set_bit(0, &ndev->rd_ready);
 
 	dev_notice(&ndev->pcidev->dev, "%s: read completed %sokay",
-		   __func__,
-		ok ? "" : "not ");
+		   __func__, ok ? "" : "not ");
 
 	/* make sure that rd_ready is set before we clear rd_outstanding */
 	smp_mb__before_atomic();
@@ -411,15 +409,13 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 	if (count <= 0 || NFP_READ_MAX < count) {
 		dev_err(&ndev->pcidev->dev,
 			"%s: invalid requested max read length %lu",
-			__func__,
-			count);
+			__func__, count);
 		return -EINVAL;
 	}
 
 	if (!test_and_clear_bit(0, &ndev->rd_ready)) {
 		dev_err(&ndev->pcidev->dev,
-			"%s: read called when not ready.",
-			__func__);
+			"%s: read called when not ready.", __func__);
 		return -EIO;
 	}
 	nbytes = 0;
@@ -581,8 +577,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 		/* invalid nfp_ifvers: set to max as fallback */
 		dev_err(&ndev->pcidev->dev,
 			"%s: %d out of allowable range [0:%d]",
-			__func__,
-			ifvers, max_ifvers);
+			__func__, ifvers, max_ifvers);
 		return ndev->ifvers;
 	}
 
@@ -601,8 +596,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 		if (!nfp_alloc_pci_push(ndev)) {
 			dev_err(&ndev->pcidev->dev,
 				"%s: can't set ifvers %d as resources not available",
-				__func__,
-				ifvers);
+				__func__, ifvers);
 			return ndev->ifvers;
 		}
 	} else {
@@ -613,8 +607,7 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 		if (!nfp_alloc_pci_pull(ndev)) {
 			dev_err(&ndev->pcidev->dev,
 				"%s: can't set ifvers %d as resources not available",
-				__func__,
-				ifvers);
+				__func__, ifvers);
 			return ndev->ifvers;
 		}
 	} else {
@@ -698,8 +691,7 @@ static int nfp_ioctl(struct inode *inode,
 		/* get and check max length */
 		if ((void *)arg) {
 			err = copy_from_user((void *)&len, (void *)arg,
-					     sizeof(u32))
-					     ? -EFAULT : 0;
+					     sizeof(u32)) ? -EFAULT : 0;
 			if (err) {
 				dev_err(&ndev->pcidev->dev,
 					"%s: ensure reading: copy from user space failed.",
@@ -709,12 +701,10 @@ static int nfp_ioctl(struct inode *inode,
 			/* signal a read to the module */
 			dev_warn(&ndev->pcidev->dev,
 				 "%s: signalling read request to module, len = %x.",
-				 __func__,
-				 len);
+				 __func__, len);
 			if (len > NFP_READ_MAX) {
 				dev_err(&ndev->pcidev->dev, "%s: len > %x = %x.",
-					__func__,
-					NFP_READ_MAX, len);
+					__func__, NFP_READ_MAX, len);
 				return -EINVAL;
 			}
 		} else {
@@ -727,8 +717,7 @@ static int nfp_ioctl(struct inode *inode,
 		if (len <= 0 || NFP_READ_MAX < len) {
 			dev_err(&ndev->pcidev->dev,
 				"%s: ensure reading: invalid max length %d/%d",
-				__func__,
-				len, NFP_READ_MAX);
+				__func__, len, NFP_READ_MAX);
 			err = -EINVAL;
 			return err;
 		}
@@ -755,8 +744,7 @@ static int nfp_ioctl(struct inode *inode,
 		addr = (ndev->ifvers < NFDEV_IF_PCI_PUSH) ? 0 : ndev->read_dma;
 		dev_notice(&ndev->pcidev->dev,
 			   "%s: ensure reading: read request with ifvers=%d addr=%p",
-			   __func__,
-			   ndev->ifvers, (void *)addr);
+			   __func__, ndev->ifvers, (void *)addr);
 
 		ne = ndev->cmddev->ensure_reading(addr, len, ndev->cmdctx, 1);
 
@@ -1169,8 +1157,7 @@ static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 
 		if (ndev->irq) {
 			dev_notice(&ndev->pcidev->dev, "%s: freeing irq, %x",
-				   __func__,
-				   ndev->irq);
+				   __func__, ndev->irq);
 			free_irq(ndev->irq, ndev);
 		}
 		for (i = 0; i < 6; i++)
@@ -1198,8 +1185,7 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 
 	dev_warn(&pcidev->dev,
 		 "%s: Found '%s' at bus %x, slot %x, irq %d.",
-		 __func__,
-		 cmddev->name, bus, slot, irq_line);
+		 __func__, cmddev->name, bus, slot, irq_line);
 
 	if (nfp_num_devices >= NFP_MAXDEV) {
 		dev_err(&pcidev->dev,
@@ -1248,8 +1234,7 @@ static int nfp_setup(const struct nfpcmd_dev *cmddev, u8 bus, u8 slot,
 			if (!ndev->bar[i]) {
 				dev_err(&ndev->pcidev->dev,
 					"%s: unable to map memory BAR %d, (0x%x).",
-					__func__,
-					i, bar[i]);
+					__func__, i, bar[i]);
 				goto fail_continue;
 			}
 		}
@@ -1336,8 +1321,7 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 	/* enable the device */
 	err = pci_enable_device(pcidev);
 	if (err) {
-		dev_err(&pcidev->dev,
-			"%s: pci_enable_device failed", __func__);
+		dev_err(&pcidev->dev, "%s: pci_enable_device failed", __func__);
 		err = -ENODEV;
 		goto probe_err;
 	}
@@ -1351,8 +1335,7 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 		if (pci_resource_len(pcidev, i) < iosize) {
 			dev_err(&pcidev->dev,
 				"%s: %s region request overflow: bar %d, requested %llx, maximum %llx",
-				__func__,
-				pci_name(pcidev), i, iosize,
+				__func__, pci_name(pcidev), i, iosize,
 				pci_resource_len(pcidev, i));
 			err = -ENODEV;
 			goto probe_err;
@@ -1364,8 +1347,7 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 		pos = pci_find_capability(pcidev, PCI_CAP_ID_MSI);
 		if (!pos) {
 			dev_err(&pcidev->dev, "%s: %s MSI not supported",
-				__func__,
-				pci_name(pcidev));
+				__func__, pci_name(pcidev));
 			err = -ENODEV;
 			goto probe_err;
 		}
@@ -1377,16 +1359,14 @@ static int nfp_pci_probe(struct pci_dev *pcidev,
 		if (err) {
 			dev_err(&pcidev->dev,
 				"%s: %s unable to enable MSI",
-				__func__,
-				pci_name(pcidev));
+				__func__, pci_name(pcidev));
 			goto probe_err;
 		}
 
 		/* IRQ vector changes if MSI is enabled. */
 		irq_line = pcidev->irq;
 		dev_notice(&pcidev->dev, "%s: %s MSI IRQ at %d",
-			   __func__,
-			   pci_name(pcidev), irq_line);
+			   __func__, pci_name(pcidev), irq_line);
 	}
 
 	dev_warn(&pcidev->dev, "%s: devname %s, slotname %s, busname %s",
@@ -1422,8 +1402,7 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
 	struct nfp_dev *ndev;
 
 	dev_err(&pcidev->dev, "%s: removing PCI device %s",
-		__func__,
-		pci_name(pcidev));
+		__func__, pci_name(pcidev));
 
 	/* find existing device */
 

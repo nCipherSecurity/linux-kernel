@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
-/** @file
+/*
+ *
+ * solo.h: nCipher PCI HSM interface
+ * Copyright 2019 nCipher Security Ltd
  *
  * Declares the nFast PCI register interface, driver runtime
  * structures, and supporting items.
@@ -43,8 +46,8 @@
  */
 #define NFPCI_RAM_MINSIZE		    0x00100000
 #define NFPCI_RAM_MINSIZE_JOBS		    0x00020000 /* standard jobs only */
-#define NFPCI_RAM_MINSIZE_KERN		    0x00040000 /* standard and kernel
-							* jobs
+#define NFPCI_RAM_MINSIZE_KERN		    0x00040000 /* standard and
+							* kernel jobs
 							*/
 
 /* Offsets within shared memory space.
