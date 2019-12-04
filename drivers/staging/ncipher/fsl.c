@@ -19,15 +19,13 @@
  */
 static int fsl_create(struct nfp_dev *ndev)
 {
-	u32 clr = 0;
-
 	/* check for device */
 	if (!ndev) {
 		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	if (ndev->created) {
 		dev_notice(&ndev->pcidev->dev,
@@ -42,10 +40,8 @@ static int fsl_create(struct nfp_dev *ndev)
 	/* try to reset check doorbell registers
 	 * (don't read back in case they hang)
 	 */
-	clr = cpu_to_le32(NFAST_INT_DEVICE_CLR);
-
 	ndev->active_bar = FSL_MEMBAR;
-	fsl_outl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS, clr);
+	fsl_outl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS, NFAST_INT_DEVICE_CLR);
 
 	if (!ndev->bar[ndev->active_bar]) {
 		dev_err(&ndev->pcidev->dev,
@@ -62,9 +58,8 @@ static int fsl_create(struct nfp_dev *ndev)
 	 */
 	dev_notice(&ndev->pcidev->dev,
 		   "%s: clearing read/write doorbell registers", __func__);
-	clr = cpu_to_le32(NFAST_INT_HOST_CLR);
-	fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_CMD, clr);
-	fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, clr);
+	fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_CMD, NFAST_INT_HOST_CLR);
+	fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, NFAST_INT_HOST_CLR);
 
 	dev_notice(&ndev->pcidev->dev, "%s: exiting %s active_bar: %d.",
 		   __func__, __func__, ndev->active_bar);
@@ -83,7 +78,6 @@ static int fsl_create(struct nfp_dev *ndev)
 static int fsl_destroy(struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev;
-	u32 tmp32;
 
 	/* check for device */
 	ndev = ctx;
@@ -92,16 +86,18 @@ static int fsl_destroy(struct nfp_dev *ctx)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* clear doorbell registers */
 	if (ndev->bar[ndev->active_bar]) {
 		dev_notice(&ndev->pcidev->dev,
 			   "%s: clearing doorbell registers", __func__);
-		tmp32 = cpu_to_le32(NFAST_INT_DEVICE_CLR);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS, tmp32);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS, tmp32);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS, tmp32);
+		fsl_outl(ndev,
+			 FSL_OFFSET_DOORBELL_WR_STATUS, NFAST_INT_DEVICE_CLR);
+		fsl_outl(ndev,
+			 FSL_OFFSET_DOORBELL_RD_STATUS, NFAST_INT_DEVICE_CLR);
+		fsl_outl(ndev,
+			 FSL_OFFSET_DOORBELL_CS_STATUS, NFAST_INT_DEVICE_CLR);
 	} else {
 		dev_err(&ndev->pcidev->dev,
 			"%s: warning: no FSL BAR[%d] memory",
@@ -125,7 +121,7 @@ static int fsl_created(struct nfp_dev *ndev)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	if (!ndev->created) {
 		dev_err(&ndev->pcidev->dev,
@@ -189,7 +185,7 @@ static int fsl_started(struct nfp_dev *ndev, int lock_flag)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	if (!ndev->bar[ndev->active_bar]) {
 		dev_err(&ndev->pcidev->dev, "%s: error: no FSL BAR[%d] memory",
@@ -199,7 +195,6 @@ static int fsl_started(struct nfp_dev *ndev, int lock_flag)
 
 	/* check the status register to see if epd has started */
 	doorbell_cs = fsl_inl(ndev, FSL_OFFSET_DOORBELL_POLLING);
-	doorbell_cs = le32_to_cpu(doorbell_cs);
 	dev_notice(&ndev->pcidev->dev,
 		   "%s: doorbell_polling is: %x", __func__, doorbell_cs);
 
@@ -257,7 +252,6 @@ static int fsl_update_connection_status(struct nfp_dev *ndev, int status)
 static void fsl_check_complete(struct nfp_dev *ndev, int status)
 {
 	int ne;
-	u32 clr, chk;
 	int started;
 
 	/* check for device */
@@ -266,7 +260,7 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
 		return;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -293,16 +287,16 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
 	if (started) {
 		dev_notice(&ndev->pcidev->dev,
 			   "fsl_create: clearing read/write doorbell registers");
-		clr = cpu_to_le32(NFAST_INT_HOST_CLR);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_CMD, clr);
-		chk = fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_CMD);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, clr);
-		chk = fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_CMD);
-		clr = cpu_to_le32(NFAST_INT_DEVICE_CLR);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS, clr);
-		chk = fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS);
-		fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS, clr);
-		chk = fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS);
+		fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_CMD, NFAST_INT_HOST_CLR);
+		fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_CMD);
+		fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, NFAST_INT_HOST_CLR);
+		fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_CMD);
+		fsl_outl(ndev,
+			 FSL_OFFSET_DOORBELL_WR_STATUS, NFAST_INT_DEVICE_CLR);
+		fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS);
+		fsl_outl(ndev,
+			 FSL_OFFSET_DOORBELL_RD_STATUS, NFAST_INT_DEVICE_CLR);
+		fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS);
 	}
 
 	if (status == 0) {
@@ -335,7 +329,7 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* mark not yet handled */
 	*handled = 0;
@@ -350,11 +344,8 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 	++ndev->stats.isr;
 
 	doorbell_wr = fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS);
-	doorbell_wr = le32_to_cpu(doorbell_wr);
 	doorbell_rd = fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS);
-	doorbell_rd = le32_to_cpu(doorbell_rd);
 	doorbell_cs = fsl_inl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS);
-	doorbell_cs = le32_to_cpu(doorbell_cs);
 	dev_notice(&ndev->pcidev->dev, "%s: cs:= %x,rd:=%x,wr:=%x",
 		   __func__, doorbell_cs, doorbell_rd, doorbell_wr);
 
@@ -461,11 +452,8 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 		}
 
 		doorbell_wr = fsl_inl(ndev, FSL_OFFSET_DOORBELL_WR_STATUS);
-		doorbell_wr = le32_to_cpu(doorbell_wr);
 		doorbell_rd = fsl_inl(ndev, FSL_OFFSET_DOORBELL_RD_STATUS);
-		doorbell_rd = le32_to_cpu(doorbell_rd);
 		doorbell_cs = fsl_inl(ndev, FSL_OFFSET_DOORBELL_CS_STATUS);
-		doorbell_cs = le32_to_cpu(doorbell_cs);
 
 		dev_notice(&ndev->pcidev->dev, "%s: cs status in isr is: %x",
 			   __func__, doorbell_cs);
@@ -498,7 +486,7 @@ static int fsl_open(struct nfp_dev *ctx)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -528,7 +516,8 @@ static int fsl_close(struct nfp_dev *ctx)
 		pr_err("%s: error: no device", __func__);
 		return -ENODEV;
 	}
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	return 0;
 }
@@ -546,7 +535,6 @@ static int fsl_close(struct nfp_dev *ctx)
 static int fsl_set_control(const struct nfdev_control_str *control,
 			   struct nfp_dev *ctx)
 {
-	u32 control_data;
 	struct nfp_dev *ndev = ctx;
 	int ne;
 
@@ -556,7 +544,7 @@ static int fsl_set_control(const struct nfdev_control_str *control,
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -572,8 +560,7 @@ static int fsl_set_control(const struct nfdev_control_str *control,
 	 * synchronization with the firmware)
 	 */
 
-	control_data = cpu_to_le32(control->control);
-	fsl_outl(ndev, FSL_OFFSET_REGISTER_CONTROL, control_data);
+	fsl_outl(ndev, FSL_OFFSET_REGISTER_CONTROL, control->control);
 
 	return 0;
 }
@@ -596,7 +583,6 @@ static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
 	int ne;
-	u32 status_data;
 	u32 *error = (uint32_t *)status->error;
 
 	/* check for device */
@@ -605,7 +591,7 @@ static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -621,8 +607,7 @@ static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 	 * with the firmware)
 	 */
 
-	status_data = fsl_inl(ndev, FSL_OFFSET_REGISTER_STATUS);
-	status->status = le32_to_cpu(status_data);
+	status->status = fsl_inl(ndev, FSL_OFFSET_REGISTER_STATUS);
 	error[0] = fsl_inl(ndev, FSL_OFFSET_REGISTER_ERROR_LO);
 	error[1] = fsl_inl(ndev, FSL_OFFSET_REGISTER_ERROR_HI);
 
@@ -653,7 +638,7 @@ static int fsl_ensure_reading(dma_addr_t addr,
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -714,13 +699,12 @@ static int fsl_ensure_reading(dma_addr_t addr,
 
 	/* trigger read request */
 
-	tmp32 = cpu_to_le32(NFAST_INT_HOST_READ_REQUEST);
-	fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, tmp32);
+	fsl_outl(ndev, FSL_OFFSET_DOORBELL_RD_CMD, NFAST_INT_HOST_READ_REQUEST);
 
 	ndev->stats.ensure++;
 
-	dev_notice(&ndev->pcidev->dev, "%s: requesting max %d bytes",
-		   __func__, len);
+	dev_notice(&ndev->pcidev->dev,
+		   "%s: requesting max %d bytes", __func__, len);
 
 	return 0;
 }
@@ -747,7 +731,7 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	*rcnt = 0;
 
@@ -776,20 +760,18 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 	dev_notice(&ndev->pcidev->dev, "%s: cnt=%u.", __func__, cnt);
 	if (cnt < 0 || cnt > len) {
 		ndev->stats.read_fail++;
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: bad byte count (%d) from device",
+		dev_err(&ndev->pcidev->dev, "%s: error: bad byte count (%d) from device",
 			__func__, cnt);
 		return -EIO;
 	}
 
 	/* receive data */
 
-	ne = nfp_copy_to_user_from_dev(ndev, ndev->active_bar,
-				       NFPCI_JOBS_RD_DATA, block, cnt);
+	ne = copy_to_user(block, ndev->bar[ndev->active_bar] +
+			  NFPCI_JOBS_RD_DATA, cnt) ? -EFAULT : 0;
 	if (ne != 0) {
 		ndev->stats.read_fail++;
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: nfp_copy_to_user_from_dev failed",
+		dev_err(&ndev->pcidev->dev, "%s: error: copy_to_user failed",
 			__func__);
 		return ne;
 	}
@@ -825,7 +807,7 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 		return -ENODEV;
 	}
 
-	dev_info(&ndev->pcidev->dev, "%s: entered", __func__);
+	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
 	/* check for device */
 
@@ -841,21 +823,19 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 	if (addr == 0) {
 		/* std write */
 
-		dev_notice(&ndev->pcidev->dev,
-			   "%s: ndev->bar[ndev->active_bar]= %p",
+		dev_notice(&ndev->pcidev->dev, "%s: ndev->bar[ndev->active_bar]= %p",
 			   __func__, (void *)ndev->bar[ndev->active_bar]);
 		dev_notice(&ndev->pcidev->dev,
 			   "%s: block len %d", __func__, len);
 
 		/* send write request */
-
-		ne = nfp_copy_from_user_to_dev(ndev, ndev->active_bar,
-					       NFPCI_JOBS_WR_DATA, block, len);
+		ne = copy_from_user(ndev->bar[ndev->active_bar] +
+				    NFPCI_JOBS_WR_DATA, block, len)
+				    ? -EFAULT : 0;
 		if (ne != 0) {
 			ndev->stats.write_fail++;
 			dev_err(&ndev->pcidev->dev,
-				"%s: error: nfp_copy_from_user_to_dev failed",
-				__func__);
+				"%s: error: copy_from_user failed", __func__);
 			return ne;
 		}
 
@@ -885,21 +865,18 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 		tmp32 = cpu_to_le32(len);
 		if (hdr[0] != tmp32) {
 			ndev->stats.write_fail++;
-			dev_err(&ndev->pcidev->dev,
-				"%s: length not written (%08x != %08x)",
+			dev_err(&ndev->pcidev->dev, "%s: length not written (%08x != %08x)",
 				__func__, hdr[0], tmp32);
 			return -EIO;
 		}
 	} else {
 		/* dma write */
 
-		dev_notice(&ndev->pcidev->dev,
-			   "%s: ndev->bar[ndev->active_bar]= %p",
+		dev_notice(&ndev->pcidev->dev, "%s: ndev->bar[ndev->active_bar]= %p",
 			   __func__, (void *)ndev->bar[ndev->active_bar]);
 		dev_notice(&ndev->pcidev->dev,
 			   "%s: block len %d", __func__, len);
-		dev_notice(&ndev->pcidev->dev,
-			   "%s: pull from 0x%016x using DMA",
+		dev_notice(&ndev->pcidev->dev, "%s: pull from 0x%016x using DMA",
 			   __func__, addr);
 
 		/* submit write request */
@@ -940,8 +917,8 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 
 	/* trigger write */
 
-	tmp32 = cpu_to_le32(NFAST_INT_HOST_WRITE_REQUEST);
-	fsl_outl(ndev, FSL_OFFSET_DOORBELL_WR_CMD, tmp32);
+	fsl_outl(ndev,
+		 FSL_OFFSET_DOORBELL_WR_CMD, NFAST_INT_HOST_WRITE_REQUEST);
 
 	ndev->stats.write_block++;
 	ndev->stats.write_byte += len;

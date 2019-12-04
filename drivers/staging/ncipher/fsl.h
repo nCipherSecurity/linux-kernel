@@ -94,7 +94,7 @@
  */
 static inline void fsl_outl(struct nfp_dev *ndev, int offset, u32 value)
 {
-	iowrite32(value, ndev->bar[ndev->active_bar] +
+	iowrite32(cpu_to_le32(value), ndev->bar[ndev->active_bar] +
 		  FSL_DOORBELL_LOCATION + offset);
 }
 
@@ -108,8 +108,8 @@ static inline void fsl_outl(struct nfp_dev *ndev, int offset, u32 value)
  */
 static inline uint32_t fsl_inl(struct nfp_dev *ndev, int offset)
 {
-	return ioread32(ndev->bar[ndev->active_bar] + FSL_DOORBELL_LOCATION +
-			offset);
+	return le32_to_cpu(ioread32(ndev->bar[ndev->active_bar]
+			   + FSL_DOORBELL_LOCATION + offset));
 }
 
 #endif /* NFP_FSL_H */

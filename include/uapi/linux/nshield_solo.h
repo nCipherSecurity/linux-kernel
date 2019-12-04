@@ -4,7 +4,6 @@
  * nshield_solo.h: UAPI header for driving the nCipher PCI HSMs using the
  * nshield_solo module
  *
- * This file wants to be processed and live in include/uapi/linux.  It's
  */
 #ifndef _UAPI_NSHIELD_SOLO_H_
 #define _UAPI_NSHIELD_SOLO_H_

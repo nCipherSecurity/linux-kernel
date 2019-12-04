@@ -35,7 +35,6 @@
 #include <linux/pci.h>
 #include <linux/poll.h>
 #include <linux/mutex.h>
-#include <linux/spinlock.h>
 #include <linux/nshield_solo.h>
 
 /* Sizes of some regions */
@@ -222,7 +221,7 @@
 /* per-instance device structure */
 struct nfp_dev {
 	/* downward facing part of the device interface */
-	u8 *bar[NFP_BARSIZES_COUNT];
+	void __iomem *bar[NFP_BARSIZES_COUNT];
 	void *extra[NFP_BARSIZES_COUNT];
 	int busno;
 	int slotno;
@@ -246,7 +245,7 @@ struct nfp_dev {
 
 	struct pci_dev *pcidev;
 
-	int busy;
+	atomic_t busy;
 	int ifvers;
 	struct timer_list rd_timer;
 
@@ -260,7 +259,6 @@ struct nfp_dev {
 	unsigned long wr_outstanding;
 	int wr_ok;
 
-	spinlock_t spinlock;     /* protect this struct */
 	struct mutex ioctl_mutex;  /* lock across ioctl */
 };
 
@@ -277,8 +275,9 @@ struct nfpcmd_dev {
 	int (*close)(struct nfp_dev *ctx);
 	int (*isr)(struct nfp_dev *ctx, int *handled);
 	int (*write_block)(u32 addr,
-			   const char *ublock, int len, struct nfp_dev *ctx);
-	int (*read_block)(char *ublock,
+			   const char __user *ublock, int len,
+			   struct nfp_dev *ctx);
+	int (*read_block)(char __user *ublock,
 			  int len, struct nfp_dev *ctx, int *rcount);
 	int (*ensure_reading)(dma_addr_t addr,
 			      int len, struct nfp_dev *ctx, int lock_flag);
@@ -293,18 +292,19 @@ extern const struct nfpcmd_dev i21555_cmddev;
 extern const struct nfpcmd_dev fsl_t1022_cmddev;
 
 /* user and device memory space access */
-/*
- * NB these 2 functions are not guaranteed to be re-entrant for a given device
- */
-int nfp_copy_from_user_to_dev(struct nfp_dev *ndev, int bar, int offset,
-			      const char *ubuf, int len);
-int nfp_copy_to_user_from_dev(struct nfp_dev *ndev, int bar, int offset,
-			      char *ubuf, int len);
+static inline int nfp_copy_from_dev(struct nfp_dev *ndev, int bar, int offset,
+				    char *kbuf, int len)
+{
+	memcpy(kbuf, ndev->bar[bar] + offset, len);
+	return 0;
+}
 
-int nfp_copy_from_dev(struct nfp_dev *ndev, int bar, int offset,
-		      char *kbuf, int len);
-int nfp_copy_to_dev(struct nfp_dev *ndev, int bar, int offset,
-		    const char *kbuf, int len);
+static inline int nfp_copy_to_dev(struct nfp_dev *ndev, int bar, int offset,
+				  const char *kbuf, int len)
+{
+	memcpy(ndev->bar[bar] + offset, kbuf, len);
+	return 0;
+}
 
 #define NFP_CMD_FLG_NEED_MSI   0x2
 
