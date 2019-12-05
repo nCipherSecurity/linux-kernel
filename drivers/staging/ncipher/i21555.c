@@ -268,10 +268,10 @@ static int i21555_write(u32 addr, const char *block, int len,
 			struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
-	u32 hdr[2];
+	__le32 hdr[2];
 	int ne;
 	u16 tmp16;
-	u32 tmp32;
+	__le32 tmp32;
 
 	/* check for device */
 	if (!ndev) {
@@ -304,6 +304,8 @@ static int i21555_write(u32 addr, const char *block, int len,
 		   __func__, ndev->bar[CSR_BAR]);
 	dev_notice(&ndev->pcidev->dev, "%s: block len %d", __func__, len);
 
+	/* send write request */
+
 	ne = copy_from_user(ndev->bar[MEMBAR2] + NFPCI_JOBS_WR_DATA,
 			    block, len) ? -EFAULT : 0;
 	if (ne != 0) {
@@ -313,27 +315,20 @@ static int i21555_write(u32 addr, const char *block, int len,
 	}
 	hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
 	hdr[1] = cpu_to_le32(len);
-	ne = nfp_copy_to_dev(ndev, MEMBAR2, NFPCI_JOBS_WR_CONTROL,
-			     (const char *)hdr, 8);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_to_dev failed", __func__);
-		return ne;
-	}
-	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_WR_LENGTH,
-			       (char *)hdr, 4);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_from_dev failed", __func__);
-		return ne;
-	}
+	memcpy(ndev->bar[MEMBAR2] + NFPCI_JOBS_WR_CONTROL,
+	       (const char *)hdr, 2 * sizeof(hdr[0]));
 
+	/* confirm write request */
+
+	memcpy((char *)hdr, ndev->bar[MEMBAR2] + NFPCI_JOBS_WR_LENGTH,
+	       sizeof(hdr[0]));
 	tmp32 = cpu_to_le32(len);
 	if (hdr[0] != tmp32) {
 		dev_err(&ndev->pcidev->dev,
 			"%s: length not written", __func__);
 		return -EIO;
 	}
+
 	tmp16 = NFAST_INT_HOST_WRITE_REQUEST >> 16;
 	nfp_outw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
 
@@ -379,13 +374,8 @@ static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 		return ne;
 	}
 
-	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
-			       (char *)&count, 4);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_from_dev failed.", __func__);
-		return ne;
-	}
+	memcpy((char *)&count, ndev->bar[MEMBAR2] + NFPCI_JOBS_RD_LENGTH,
+	       sizeof(count));
 	count = le32_to_cpu(count);
 	if (count < 0 || count > len) {
 		dev_err(&ndev->pcidev->dev, "%s: bad byte count (%d) from device",
@@ -413,9 +403,9 @@ static int i21555_ensure_reading(dma_addr_t addr,
 				 int len, struct nfp_dev *ctx, int lock_flag)
 {
 	struct nfp_dev *ndev = ctx;
-	u32 hdr[3];
+	__le32 hdr[3];
 	u16 tmp16;
-	u32 tmp32;
+	__le32 tmp32;
 	int ne;
 	int hdr_len;
 
@@ -448,41 +438,35 @@ static int i21555_ensure_reading(dma_addr_t addr,
 		   ndev->bar[MEMBAR2]);
 	dev_notice(&ndev->pcidev->dev, "%s: ndev->bar[ CSR_BAR ]= %p", __func__,
 		   ndev->bar[CSR_BAR]);
+
+	/* send read request */
+
 	if (addr) {
 		dev_notice(&ndev->pcidev->dev, "%s: new format, addr %p",
 			   __func__, (void *)addr);
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL_PCI_PUSH);
 		hdr[1] = cpu_to_le32(len);
 		hdr[2] = cpu_to_le32(addr);
-		hdr_len = 12;
+		hdr_len = 3 * sizeof(hdr[0]);
 	} else {
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
 		hdr[1] = cpu_to_le32(len);
-		hdr_len = 8;
+		hdr_len = 2 * sizeof(hdr[0]);
 	}
 
-	ne = nfp_copy_to_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_CONTROL,
-			     (const char *)hdr, hdr_len);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_to_dev failed", __func__);
-		return ne;
-	}
+	memcpy(ndev->bar[MEMBAR2] + NFPCI_JOBS_RD_CONTROL,
+	       (const char *)hdr, hdr_len);
 
-	ne = nfp_copy_from_dev(ndev, MEMBAR2, NFPCI_JOBS_RD_LENGTH,
-			       (char *)hdr, 4);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: nfp_copy_from_dev failed", __func__);
-		return ne;
-	}
+	/* confirm read request */
 
+	memcpy((char *)hdr, ndev->bar[MEMBAR2] + NFPCI_JOBS_RD_LENGTH,
+	       sizeof(hdr[0]));
 	tmp32 = cpu_to_le32(len);
-
 	if (hdr[0] != tmp32) {
 		dev_err(&ndev->pcidev->dev, "%s: len not written", __func__);
 		return -EIO;
 	}
+
 	tmp16 = NFAST_INT_HOST_READ_REQUEST >> 16;
 	nfp_outw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_SEC_SET, tmp16);
 

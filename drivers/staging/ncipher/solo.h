@@ -291,21 +291,6 @@ struct nfpcmd_dev {
 extern const struct nfpcmd_dev i21555_cmddev;
 extern const struct nfpcmd_dev fsl_t1022_cmddev;
 
-/* user and device memory space access */
-static inline int nfp_copy_from_dev(struct nfp_dev *ndev, int bar, int offset,
-				    char *kbuf, int len)
-{
-	memcpy(kbuf, ndev->bar[bar] + offset, len);
-	return 0;
-}
-
-static inline int nfp_copy_to_dev(struct nfp_dev *ndev, int bar, int offset,
-				  const char *kbuf, int len)
-{
-	memcpy(ndev->bar[bar] + offset, kbuf, len);
-	return 0;
-}
-
 #define NFP_CMD_FLG_NEED_MSI   0x2
 
 #ifndef PCI_BASE_ADDRESS_SPACE_PREFETCHABLE

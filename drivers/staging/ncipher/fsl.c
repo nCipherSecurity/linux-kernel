@@ -627,8 +627,8 @@ static int fsl_ensure_reading(dma_addr_t addr,
 			      int len, struct nfp_dev *ctx, int lock_flag)
 {
 	struct nfp_dev *ndev = ctx;
-	u32 hdr[3];
-	u32 tmp32;
+	__le32 hdr[3];
+	__le32 tmp32;
 	int ne;
 	int hdr_len;
 
@@ -663,31 +663,20 @@ static int fsl_ensure_reading(dma_addr_t addr,
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL_PCI_PUSH);
 		hdr[1] = cpu_to_le32(len);
 		hdr[2] = cpu_to_le32(addr);
-		hdr_len = 12;
+		hdr_len = 3 * sizeof(hdr[0]);
 	} else {
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
 		hdr[1] = cpu_to_le32(len);
-		hdr_len = 8;
+		hdr_len = 2 * sizeof(hdr[0]);
 	}
-	ne = nfp_copy_to_dev(ndev, ndev->active_bar,
-			     NFPCI_JOBS_RD_CONTROL, (char const *)hdr, hdr_len);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: nfp_copy_to_dev failed", __func__);
-		ndev->stats.ensure_fail++;
-		return ne;
-	}
+	memcpy(ndev->bar[ndev->active_bar] + NFPCI_JOBS_RD_CONTROL,
+	       (char const *)hdr, hdr_len);
 
 	/* confirm read request */
 
-	ne = nfp_copy_from_dev(ndev, ndev->active_bar, NFPCI_JOBS_RD_LENGTH,
-			       (char *)hdr, 4);
-	if (ne != 0) {
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: nfp_copy_from_dev failed", __func__);
-		ndev->stats.ensure_fail++;
-		return ne;
-	}
+	memcpy((char *)hdr,
+	       ndev->bar[ndev->active_bar] + NFPCI_JOBS_RD_LENGTH,
+	       sizeof(hdr[0]));
 	tmp32 = cpu_to_le32(len);
 	if (hdr[0] != tmp32) {
 		dev_err(&ndev->pcidev->dev,
@@ -748,14 +737,9 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 
 	/* receive reply length */
 
-	ne = nfp_copy_from_dev(ndev, ndev->active_bar, NFPCI_JOBS_RD_LENGTH,
-			       (char *)&cnt, 4);
-	if (ne != 0) {
-		ndev->stats.read_fail++;
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: nfp_copy_from_dev failed.", __func__);
-		return ne;
-	}
+	memcpy((char *)&cnt,
+	       ndev->bar[ndev->active_bar] + NFPCI_JOBS_RD_LENGTH,
+	       sizeof(cnt));
 	cnt = le32_to_cpu(cnt);
 	dev_notice(&ndev->pcidev->dev, "%s: cnt=%u.", __func__, cnt);
 	if (cnt < 0 || cnt > len) {
@@ -797,9 +781,10 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
-	u32 hdr[3];
+	__le32 hdr[3];
 	int ne;
-	u32 tmp32;
+	__le32 tmp32;
+	int hdr_len;
 
 	/* check for device */
 	if (!ndev) {
@@ -829,6 +814,7 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 			   "%s: block len %d", __func__, len);
 
 		/* send write request */
+
 		ne = copy_from_user(ndev->bar[ndev->active_bar] +
 				    NFPCI_JOBS_WR_DATA, block, len)
 				    ? -EFAULT : 0;
@@ -841,27 +827,15 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL);
 		hdr[1] = cpu_to_le32(len);
-		ne = nfp_copy_to_dev(ndev, ndev->active_bar,
-				     NFPCI_JOBS_WR_CONTROL,
-					 (char const *)hdr, 8);
-		if (ne != 0) {
-			ndev->stats.write_fail++;
-			dev_err(&ndev->pcidev->dev,
-				"%s: error: nfp_copy_to_dev failed", __func__);
-			return ne;
-		}
+		hdr_len = 2 * sizeof(hdr[0]);
+		memcpy(ndev->bar[ndev->active_bar] + NFPCI_JOBS_WR_CONTROL,
+		       (char const *)hdr, hdr_len);
 
 		/* confirm write request */
 
-		ne = nfp_copy_from_dev(ndev, ndev->active_bar,
-				       NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
-		if (ne != 0) {
-			ndev->stats.write_fail++;
-			dev_err(&ndev->pcidev->dev,
-				"%s: nfp_copy_from_dev failed", __func__);
-			return ne;
-		}
-
+		memcpy((char *)hdr,
+		       ndev->bar[ndev->active_bar] + NFPCI_JOBS_WR_LENGTH,
+		       sizeof(hdr[0]));
 		tmp32 = cpu_to_le32(len);
 		if (hdr[0] != tmp32) {
 			ndev->stats.write_fail++;
@@ -884,27 +858,15 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 		hdr[0] = cpu_to_le32(NFPCI_JOB_CONTROL_PCI_PULL);
 		hdr[1] = cpu_to_le32(len);
 		hdr[2] = cpu_to_le32(addr);
-		ne = nfp_copy_to_dev(ndev, ndev->active_bar,
-				     NFPCI_JOBS_WR_CONTROL, (char const *)hdr,
-					 12);
-		if (ne != 0) {
-			ndev->stats.write_fail++;
-			dev_err(&ndev->pcidev->dev,
-				"%s: nfp_copy_to_dev failed", __func__);
-			return ne;
-		}
+		hdr_len = 3 * sizeof(hdr[0]);
+		memcpy(ndev->bar[ndev->active_bar] + NFPCI_JOBS_WR_CONTROL,
+		       (char const *)hdr, hdr_len);
 
-		/* confirm request */
+		/* confirm write request */
 
-		ne = nfp_copy_from_dev(ndev, ndev->active_bar,
-				       NFPCI_JOBS_WR_LENGTH, (char *)hdr, 4);
-		if (ne != 0) {
-			ndev->stats.write_fail++;
-			dev_err(&ndev->pcidev->dev,
-				"%s: nfp_copy_from_dev failed", __func__);
-			return ne;
-		}
-
+		memcpy((char *)hdr,
+		       ndev->bar[ndev->active_bar] + NFPCI_JOBS_WR_LENGTH,
+		       sizeof(hdr[0]));
 		tmp32 = cpu_to_le32(len);
 		if (hdr[0] != tmp32) {
 			ndev->stats.write_fail++;
