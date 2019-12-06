@@ -12457,10 +12457,11 @@ L:	linux-pci@vger.kernel.org
 S:	Supported
 F:	drivers/pci/controller/vmd.c
 
-PCI DRIVER FOR NSHIELD SOLO AND SOLO XC
-M:	Hamish Cameron <hamish.cameron@ncipher.com>
+PCI DRIVER FOR NSHIELD SOLO AND SOLO XC HARDWARE SECURITY MODULES (HSM)
 M:	Tim Magee <tim.magee@ncipher.com>
-L:	linux-pci@vger.kernel.org
+M:	David Kim <david.kim@ncipher.com>
+M:	Hamish Cameron <hamish.cameron@ncipher.com>
+L:	linux-crypto@vger.kernel.org
 S:	Supported
 F:	drivers/staging/ncipher/
 
