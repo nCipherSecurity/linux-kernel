@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Makefile for nCipher nShield HSM drivers
+#
+
+obj-$(CONFIG_HSM_NCIPHER_NSHIELD_SOLO) := nshield_solo.o
+nshield_solo-y := hostif.o fsl.o i21555.o
