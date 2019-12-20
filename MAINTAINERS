@@ -11323,6 +11323,7 @@ NCIPHER NSHIELD HARDWARE SECURITY MODULE DRIVERS
 M:	Tim Magee <tim.magee@ncipher.com>
 M:	David Kim <david.kim@ncipher.com>
 M:	Hamish Cameron <hamish.cameron@ncipher.com>
+W:	https://www.ncipher.com/products/general-purpose-hsms/nshield-solo
 L:	linux-kernel@vger.kernel.org
 S:	Supported
 F:	drivers/misc/ncipher/

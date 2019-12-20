@@ -11,10 +11,6 @@
 
 #include "solo.h"
 
-#ifndef PCI_VENDOR_ID_INTEL
-#define PCI_VENDOR_ID_INTEL			0x8086
-#endif
-
 #ifndef PCI_DEVICE_ID_INTEL_21555
 #define PCI_DEVICE_ID_INTEL_21555		0xb555
 #endif

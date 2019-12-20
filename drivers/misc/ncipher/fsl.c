@@ -10,12 +10,12 @@
 #include "fsl.h"
 
 /**
- * Resets FSL device.
+ * fsl_create - Resets FSL device.
+ * @ndev:	common device
  *
  * Extra device info is initialized the first time created.
  *
- * @param ndev common device.
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_create(struct nfp_dev *ndev)
 {
@@ -37,7 +37,8 @@ static int fsl_create(struct nfp_dev *ndev)
 	ndev->detection_type = NFP_HSM_POLLING;
 	ndev->conn_status = NFP_HSM_STARTING;
 
-	/* try to reset check doorbell registers
+	/*
+	 * try to reset check doorbell registers
 	 * (don't read back in case they hang)
 	 */
 	ndev->active_bar = FSL_MEMBAR;
@@ -53,7 +54,8 @@ static int fsl_create(struct nfp_dev *ndev)
 	/* set our context to just be a pointer to ourself */
 	ndev->cmdctx = ndev;
 
-	/* try to reset read/write doorbell registers
+	/*
+	 * try to reset read/write doorbell registers
 	 * (don't read back in case they hang)
 	 */
 	dev_notice(&ndev->pcidev->dev,
@@ -70,10 +72,10 @@ static int fsl_create(struct nfp_dev *ndev)
 }
 
 /**
- * Destroys an FSL device.
+ * fsl_destroy - Destroys an FSL device.
+ * @ctx:	device context (always the device itself)
  *
- * @param ctx device context (always the device itself).
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_destroy(struct nfp_dev *ctx)
 {
@@ -108,10 +110,10 @@ static int fsl_destroy(struct nfp_dev *ctx)
 }
 
 /**
- * Returns fsl_created status.
+ * fsl_created - Returns fsl_created status.
+ * @ndev:	common device
  *
- * @param ndev common device.
- * @returns 0 if created or other value if error.
+ * RETURNS: 0 if created or other value if error.
  */
 static int fsl_created(struct nfp_dev *ndev)
 {
@@ -139,41 +141,14 @@ static int fsl_created(struct nfp_dev *ndev)
 	return 0;
 }
 
-/* ----------------------------------------------------- */
-/* This call needs to be in synch with the ISR or the ISR will come in the
- *  middle of a write/read op and cause problems.
- */
-static int fsl_connection_status(struct nfp_dev *ndev, int lock_flag,
-				 int epd_status)
-{
-	int status = NFP_HSM_STARTING;
-
-	/* check for device */
-	if (!ndev)
-		return -ENODEV;
-
-	/* this code is mainly to support backwards compatibility with the
-	 * interrupt driven approach to detection.
-	 */
-	if (epd_status == NFP_HSM_POLLING) {
-		ndev->detection_type = NFP_HSM_POLLING;
-		ndev->conn_status = 0;
-	} else if (epd_status == NFAST_INT_DEVICE_PCI_DOWN) {
-		ndev->conn_status = NFP_HSM_STARTING;
-	}
-
-	status = ndev->conn_status;
-	return status;
-}
-
 /**
- * Returns connection check status.
+ * fsl_started - Returns the current status of the connection.
+ * @ndev:	common device
  *
- * @param ndev common device.
- * @returns 0 if started, NFP_HSM_STARTING if not ready,
+ * RETURNS: 0 if started, NFP_HSM_STARTING if not ready,
  * or other value if error.
  */
-static int fsl_started(struct nfp_dev *ndev, int lock_flag)
+static int fsl_started(struct nfp_dev *ndev)
 {
 	int status = NFP_HSM_STARTING;
 	int epd_status = NFP_HSM_STARTING;
@@ -205,30 +180,34 @@ static int fsl_started(struct nfp_dev *ndev, int lock_flag)
 	} else if (doorbell_cs == NFAST_INT_DEVICE_PCI_DOWN) {
 		epd_status = NFAST_INT_DEVICE_PCI_DOWN;
 	}
-	/* check current connection status */
-	status = fsl_connection_status(ndev, lock_flag, epd_status);
 
-	if (status == 0) {
+	/* check current connection status */
+
+	/*
+	 * support backwards compatibility with the interrupt driven approach
+	 * to detection.
+	 */
+	if (epd_status == NFP_HSM_POLLING) {
+		ndev->detection_type = NFP_HSM_POLLING;
+		ndev->conn_status = 0;
+		status = ndev->conn_status;
 		dev_notice(&ndev->pcidev->dev, "%s: device started", __func__);
-	} else if (status == NFP_HSM_STARTING) {
+	} else if (epd_status == NFAST_INT_DEVICE_PCI_DOWN) {
+		ndev->conn_status = NFP_HSM_STARTING;
 		dev_notice(&ndev->pcidev->dev, "%s: device starting", __func__);
 		/* Closest existing error code */
 		status = -EAGAIN;
-	} else {
-		dev_err(&ndev->pcidev->dev,
-			"%s: error: device failure: code 0x%x",
-			__func__, status);
 	}
 
 	return status;
 }
 
 /**
- * Updates the connection check status.
+ * fsl_update_connection_status - Updates the connection check status.
+ * @ndev:	common device
+ * @status:	new status
  *
- * @param ndev common device.
- * @param status new status
- * @returns 0 if stopped or other value if error.
+ * RETURNS: 0 if stopped or other value if error.
  */
 
 static int fsl_update_connection_status(struct nfp_dev *ndev, int status)
@@ -244,10 +223,9 @@ static int fsl_update_connection_status(struct nfp_dev *ndev, int status)
 }
 
 /**
- * Completes a connection check status interrupt.
- *
- * @param ndev common device.
- * @param status device status.
+ * fsl_check_complete - Completes a connection check status interrupt.
+ * @ndev:	common device
+ * @status:	device status
  */
 static void fsl_check_complete(struct nfp_dev *ndev, int status)
 {
@@ -262,8 +240,7 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
+	/* check device status */
 	ne = fsl_created(ndev);
 	if (ne != 0) {
 		dev_err(&ndev->pcidev->dev,
@@ -271,7 +248,8 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
 		return;
 	}
 
-	/* started becomes true after fsl_create and the first cs interrupt is
+	/*
+	 * started becomes true after fsl_create and the first cs interrupt is
 	 * successful.
 	 * It switches to false right after since cs_status is set to
 	 * 0 right after this check
@@ -312,11 +290,11 @@ static void fsl_check_complete(struct nfp_dev *ndev, int status)
 }
 
 /**
- * Handles an interrupt from the FSL device.
+ * fsl_isr - Handles an interrupt from the FSL device.
+ * @ctx:	device context (always the device itself)
+ * @handled:	set non-zero by this routine if interrupt considered handled
  *
- * @param ctx device context (always the device itself).
- * @param handled set non-zero by this routine if interrupt considered handled
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_isr(struct nfp_dev *ctx, int *handled)
 {
@@ -350,7 +328,8 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 		   __func__, doorbell_cs, doorbell_rd, doorbell_wr);
 
 	while (doorbell_rd || doorbell_wr || doorbell_cs) {
-		/* prevent any illegal combination of set bits from triggering
+		/*
+		 * prevent any illegal combination of set bits from triggering
 		 * processing. Note that if anyone of these registers have an
 		 * incorrect bit set, it would prevent the other operations from
 		 * being processed since we return from the ISR, even if they
@@ -395,7 +374,8 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 			return 0;
 		}
 
-		/* service interrupts.
+		/*
+		 * service interrupts.
 		 * if we made it here, the doorbell registers are all valid,
 		 * so no need to check for their validity anymore.
 		 */
@@ -427,7 +407,8 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 				__func__,
 				doorbell_rd & NFAST_INT_DEVICE_READ_OK ? 1 : 0);
 		}
-		/* the doorbell_cs is being phased out in favor of polling since
+		/*
+		 * the doorbell_cs is being phased out in favor of polling since
 		 * there were issues caused by this interrupt being issued from
 		 * the card on its own when the driver was not even present.
 		 * To maintain backwards compatibility, this code is being kept,
@@ -468,12 +449,12 @@ static int fsl_isr(struct nfp_dev *ctx, int *handled)
 }
 
 /**
- * Performs additional FSL-specific actions when opening a device.
+ * fsl_open - Performs additional FSL-specific actions when opening a device.
+ * @ctx:	device context (always the device itself)
  *
  * This routine returns an error if the device has not properly started.
  *
- * @param ctx device context (always the device itself).
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_open(struct nfp_dev *ctx)
 {
@@ -488,9 +469,8 @@ static int fsl_open(struct nfp_dev *ctx)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
-	ne = fsl_started(ndev, NFP_WITH_LOCK);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		ndev->stats.ensure_fail++;
 		dev_err(&ndev->pcidev->dev,
@@ -502,10 +482,10 @@ static int fsl_open(struct nfp_dev *ctx)
 }
 
 /**
- * Performs additional FSL-specific actions when closing a device.
+ * fsl_close - Performs additional FSL-specific actions when closing a device.
+ * @ctx:	device context (always the device itself)
  *
- * @param ctx device context (always the device itself).
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_close(struct nfp_dev *ctx)
 {
@@ -523,14 +503,14 @@ static int fsl_close(struct nfp_dev *ctx)
 }
 
 /**
- * Sets control data.
+ * fsl_set_control - Sets control data.
+ * @control:	control string to copy from
+ * @ctx:	device context (always the device itself)
  *
  * The device control register is writen directly. No doorbell style handshake
  * is used.
  *
- * @param control control string to copy from.
- * @param ctx device context (always the device itself).
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_set_control(const struct nfdev_control_str *control,
 			   struct nfp_dev *ctx)
@@ -546,17 +526,16 @@ static int fsl_set_control(const struct nfdev_control_str *control,
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
-	ndev = (struct nfp_dev *)ctx;
-	ne = fsl_started(ndev, NFP_WITH_LOCK);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		dev_err(&ndev->pcidev->dev,
 			"%s: error: unable to set control", __func__);
 		return ne;
 	}
 
-	/* set control (written immediately with no explicit
+	/*
+	 * set control (written immediately with no explicit
 	 * synchronization with the firmware)
 	 */
 
@@ -566,7 +545,9 @@ static int fsl_set_control(const struct nfdev_control_str *control,
 }
 
 /**
- * Returns status data.
+ * fsl_get_status - Returns status data.
+ * @status:	string to copy into
+ * @ctx:	device context (always the device itself)
  *
  * The device status registers are read immediately. No doorbell style
  * handshake is used. Without explicit synchronization, it is possible
@@ -575,9 +556,7 @@ static int fsl_set_control(const struct nfdev_control_str *control,
  * For example, the call could return an updated status word with a not
  * as yet updated error string. This is likely a degenerate case.
  *
- * @param status string to copy into.
- * @param ctx device context (always the device itself).
- * @returns 0 if successful, other value if error.
+ * RETURNS: 0 if successful, other value if error.
  */
 static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 {
@@ -593,20 +572,18 @@ static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
-	ndev = (struct nfp_dev *)ctx;
-	ne = fsl_started(ndev, NFP_WITH_LOCK);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		dev_err(&ndev->pcidev->dev,
 			"%s: error: unable to get status", __func__);
 		return ne;
 	}
 
-	/* get status (read immediately with no explicit synchronization
+	/*
+	 * get status (read immediately with no explicit synchronization
 	 * with the firmware)
 	 */
-
 	status->status = fsl_inl(ndev, FSL_OFFSET_REGISTER_STATUS);
 	error[0] = fsl_inl(ndev, FSL_OFFSET_REGISTER_ERROR_LO);
 	error[1] = fsl_inl(ndev, FSL_OFFSET_REGISTER_ERROR_HI);
@@ -615,16 +592,15 @@ static int fsl_get_status(struct nfdev_status_str *status, struct nfp_dev *ctx)
 }
 
 /**
- * Initiates a device read request.
+ * fsl_ensure_reading - Initiates a device read request.
+ * @addr:	32-bit bus address used by DMA to push reply from device
+ * @len:	maximum length data to return
+ * @ctx:	device context (always the device itself)
  *
- * @param addr 32-bit bus address used by DMA to push reply from device.
- * @param len maximum length data to return.
- * @param ctx device context (always the device itself).
- * @returns 0 if read initiated, NFP_HSM_STARTING if device not ready,
+ * RETURNS: 0 if read initiated, NFP_HSM_STARTING if device not ready,
  * or other value if error.
  */
-static int fsl_ensure_reading(dma_addr_t addr,
-			      int len, struct nfp_dev *ctx, int lock_flag)
+static int fsl_ensure_reading(dma_addr_t addr, int len, struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
 	__le32 hdr[3];
@@ -640,10 +616,8 @@ static int fsl_ensure_reading(dma_addr_t addr,
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
-	ndev = (struct nfp_dev *)ctx;
-	ne = fsl_started(ndev, lock_flag);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		ndev->stats.ensure_fail++;
 		dev_err(&ndev->pcidev->dev,
@@ -699,13 +673,13 @@ static int fsl_ensure_reading(dma_addr_t addr,
 }
 
 /**
- * Reads a device read reply.
+ * fsl_read - Reads a device read reply.
+ * @block:	data buffer to copy into
+ * @len:	maximum length of data to copy
+ * @ctx:	device context (always the device itself)
+ * @rcnt:	returned actual # of bytes copied
  *
- * @param block data buffer to copy into.
- * @param len maximum length of data to copy.
- * @param ctx device context (always the device itself).
- * @param rcnt returned actual # of bytes copied
- * @returns 0 if read initiated, NFP_HSM_STARTING if device not ready,
+ * RETURNS: 0 if read initiated, NFP_HSM_STARTING if device not ready,
  * or other value if error.
  */
 static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
@@ -724,10 +698,8 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 
 	*rcnt = 0;
 
-	/* check for device */
-
-	ndev = (struct nfp_dev *)ctx;
-	ne = fsl_started(ndev, NFP_WITH_LOCK);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		ndev->stats.read_fail++;
 		dev_err(&ndev->pcidev->dev,
@@ -769,13 +741,13 @@ static int fsl_read(char *block, int len, struct nfp_dev *ctx, int *rcnt)
 }
 
 /**
- * Initiates a device write request.
+ * fsl_write - Initiates a device write request.
+ * @addr:	32-bit bus address used by DMA to pull request to device
+ * @block:	data buffer to copy from
+ * @len:	length of data to copy
+ * @ctx:	device context (always the device itself)
  *
- * @param addr 32-bit bus address used by DMA to pull request to device.
- * @param block data buffer to copy from.
- * @param len length of data to copy.
- * @param ctx device context (always the device itself).
- * @returns 0 if write successful, NFP_HSM_STARTING if device not
+ * RETURNS: 0 if write successful, NFP_HSM_STARTING if device not
  * ready, or other value if error.
  */
 static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
@@ -794,10 +766,8 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* check for device */
-
-	ndev = (struct nfp_dev *)ctx;
-	ne = fsl_started(ndev, NFP_WITH_LOCK);
+	/* check device status */
+	ne = fsl_started(ndev);
 	if (ne != 0) {
 		ndev->stats.write_fail++;
 		dev_err(&ndev->pcidev->dev,
@@ -889,7 +859,7 @@ static int fsl_write(u32 addr, char const *block, int len, struct nfp_dev *ctx)
 	return 0;
 }
 
-/** FSL Sawshark T1022 device configuration. */
+/* FSL Sawshark T1022 device configuration. */
 const struct nfpcmd_dev fsl_t1022_cmddev = { "nCipher nShield Solo XC",
 				      PCI_VENDOR_ID_FREESCALE,
 				      PCI_DEVICE_ID_FREESCALE_T1022,

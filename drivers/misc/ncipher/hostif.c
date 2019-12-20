@@ -17,14 +17,14 @@
 #include "i21555.h"
 #include "fsl.h"
 
-/* limits & sizes ------------------------------------------------ */
+/* limits & sizes */
 #define NFP_READ_MAX (8 * 1024)
 #define NFP_WRITE_MAX (8 * 1024)
 #define NFP_READBUF_SIZE (NFP_READ_MAX + 8)
 #define NFP_WRITEBUF_SIZE (NFP_WRITE_MAX + 8)
 #define NFP_MAXDEV 16
 
-/* other operating constants ------------------------------------- */
+/* other operating constants */
 #define NFP_TIMEOUT_SEC 20
 #define NFP_DMA_NBYTES_OFFSET (4)
 #define NFP_DMA_ADDRESS_OFFSET (8)
@@ -35,28 +35,27 @@
 #define WAIT_BIT  0 /* waiting for data */
 #define CMPLT_BIT 1 /* completing a read (got data or timing out) */
 
-/* Used to determine which installed module we're looking at
+/*
+ * Used to determine which installed module we're looking at
  * from its minor device number
  */
 #define INODE_FROM_FILE(file) ((file)->f_path.dentry->d_inode)
 
-/* Major device type
+/*
+ * Major device type
  * "nCipher nFast PCI crypto accelerator" in
  * https://www.kernel.org/doc/html/v4.11/admin-guide/devices.html
  */
-#define NFP_MAJOR 176 /* */
+#define NFP_MAJOR 176
 
-/* device list --------------------------------------------------- */
+/* device list */
 
 static struct nfp_dev *nfp_dev_list[NFP_MAXDEV];
 static int nfp_num_devices;
 static struct class *nfp_class;
-/*! @} */
 
 /**
- * @addtogroup modparams
  * Module structures.
- * @{
  */
 
 /**
@@ -79,25 +78,21 @@ module_param(nfp_ifvers, int, 0444);
 MODULE_PARM_DESC(nfp_ifvers, "maximum interface version (1-2), or any (0)");
 MODULE_LICENSE("GPL");
 
-/** @} */
-
 /**
- * @addtogroup fops
  * NSHIELD_SOLO character device file operations.
- * @{
  */
 
 /**
- * Polls an NSHIELD SOLO device.
+ * nfp_poll - Polls an NSHIELD SOLO device.
+ * @filep:	device file pointer
+ * @wait:	poll table pointer
  *
  * The kernel calls this function when a user tries to poll an NSHIELD SOLO
  * device. The function returns a bit mask which indicates if the device is
  * immediately readable or writable.  A readable device will set
  * (POLLIN | POLLRDNORM). A writable device will set (POLLOUT | POLLWRNORM).
  *
- * @param filep device file pointer.
- * @param wait  poll table pointer.
- * @returns mask indicating if readable and/or writable.
+ * RETURNS: mask indicating if readable and/or writable.
  */
 static u32 nfp_poll(struct file *file, poll_table *wait)
 {
@@ -145,7 +140,8 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* could be executed simultaneously by more than one thread -
+	/*
+	 * could be executed simultaneously by more than one thread -
 	 * e.g. from the write isr and from the nfp_write/timeout
 	 * we don't want that to happen.
 	 */
@@ -153,7 +149,8 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 		return;
 
 	if (!test_bit(WAIT_BIT, &ndev->wr_outstanding)) {
-		/* we can only get here if the write has already
+		/*
+		 * we can only get here if the write has already
 		 * been completed
 		 */
 		dev_err(&ndev->pcidev->dev,
@@ -182,17 +179,17 @@ void nfp_write_complete(struct nfp_dev *ndev, int ok)
 #define CREATE_TRACE_POINTS
 
 /**
- * Writes to an NSHIELD SOLO device.
+ * nfp_write - Writes to an NSHIELD SOLO device.
+ * @file:	device file pointer
+ * @buf:	pointer to a user space buffer
+ * @count:	size of user space buffer
+ * @off:	offset position (ignored)
  *
  * Data in the user space buffer is written to the NSHIELD SOLO device. Any
  * previous data is overwritten. An error is returned if not all
  * bytes are written from the user space buffer.
  *
- * @param file  device file pointer.
- * @param buf   pointer to a user space buffer.
- * @param count size of user space buffer.
- * @param off   offset position (ignored).
- * @returns actual number of bytes written or a negative value if an erroR
+ * RETURNS: actual number of bytes written or a negative value if an error
  * occurred.
  */
 static ssize_t nfp_write(struct file *file, char const __user *buf,
@@ -308,7 +305,8 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 
 	dev_dbg(&ndev->pcidev->dev, "%s: entered", __func__);
 
-	/* could be executed simultaneously by more than one thread -
+	/*
+	 * could be executed simultaneously by more than one thread -
 	 * e.g. from the read isr and from the timeout
 	 * we don't want that to happen.
 	 */
@@ -316,7 +314,8 @@ void nfp_read_complete(struct nfp_dev *ndev, int ok)
 		return;
 
 	if (!test_bit(WAIT_BIT, &ndev->rd_outstanding)) {
-		/* we can only get here if the read has already been completed
+		/*
+		 * we can only get here if the read has already been completed
 		 * and no new ENSUREREADING request has been received since
 		 */
 		dev_err(&ndev->pcidev->dev,
@@ -361,18 +360,18 @@ static void nfp_read_timeout(struct timer_list *t)
 }
 
 /**
- * Reads from an NSHIELD SOLO device.
+ * nfp_read - Reads from an NSHIELD SOLO device.
+ * @file:	device file pointer
+ * @buf:	pointer to a user space buffer
+ * @count:	maximum size of user space buffer
+ * @off:	offset position (ignored)
  *
  * Data is read from the NSHIELD SOLO device into the user space buffer.
  * The read removes the data from the device. An error is returned is not
  * all the bytes are read from the user space buffer.
  *
- * @param file  device file pointer.
- * @param buf   pointer to a user space buffer.
- * @param count maximum size of user space buffer.
- * @param off   offset position (ignored).
- * @returns actual number of bytes read or a negative
- * value if an error occurred.
+ * RETURNS: actual number of bytes read or a negative value if an error
+ * occurred.
  */
 static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 			loff_t *off)
@@ -470,7 +469,8 @@ static ssize_t nfp_read(struct file *file, char __user *buf, size_t count,
 
 static int nfp_alloc_pci_push(struct nfp_dev *ndev)
 {
-	/* allocate resources needed for PCI Push,
+	/*
+	 * allocate resources needed for PCI Push,
 	 * if not already allocated.
 	 * return True if successful
 	 */
@@ -496,7 +496,8 @@ static int nfp_alloc_pci_push(struct nfp_dev *ndev)
 
 static int nfp_alloc_pci_pull(struct nfp_dev *ndev)
 {
-	/* allocate resources needed for PCI Pull,
+	/*
+	 * allocate resources needed for PCI Pull,
 	 * if not already allocated.
 	 * return True if successful
 	 */
@@ -545,12 +546,12 @@ static void nfp_free_pci_pull(struct nfp_dev *ndev)
 	}
 }
 
-/*
- * Sets device interface version.
+/**
+ * nfp_set_ifvers - Sets device interface version.
+ * @ndev:	an NSHIELD SOLO device
+ * @ifvers:	interface version
  *
- * @param ndev an NSHIELD SOLO device.
- * @param ifvers interface version.
- * @returns interface version actually set.
+ * RETURNS: interface version actually set.
  */
 static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 {
@@ -578,7 +579,8 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 
 	if (ifvers == 0 &&
 	    ndev->cmddev->deviceid == PCI_DEVICE_ID_FREESCALE_T1022) {
-		/* default ifvers: set to max for ngsolo not for legacy!
+		/*
+		 * default ifvers: set to max for ngsolo not for legacy!
 		 * The legacy card needs it set to 0 when in Maintenance
 		 * mode and then the hardserver steps it up to ifvers 2
 		 * when switching back to Operational mode. Solo XC starts
@@ -617,13 +619,13 @@ static int nfp_set_ifvers(struct nfp_dev *ndev, int ifvers)
 }
 
 /**
- * Performs an NSHIELD SOLO device IOCTL call.
+ * nfp_ioctl - Performs an NSHIELD SOLO device IOCTL call.
+ * @inode:	device inode pointer
+ * @file:	device file pointer
+ * @cmd:	command id
+ * @arg:	command argument
  *
- * @param inode device inode pointer.
- * @param file  device file pointer.
- * @param cmd   command id.
- * @param arg   command argument.
- * @returns 0 if successful.
+ * RETURNS: 0 if successful or other value if error.
  */
 static int nfp_ioctl(struct inode *inode,
 		     struct file *file,
@@ -674,8 +676,7 @@ static int nfp_ioctl(struct inode *inode,
 			return err;
 		}
 	} break;
-	case NFDEV_IOCTL_ENSUREREADING:
-	case NFDEV_IOCTL_ENSUREREADING_BUG3349: {
+	case NFDEV_IOCTL_ENSUREREADING: {
 		dma_addr_t addr;
 		u32 len;
 		int err = -EIO;
@@ -741,14 +742,15 @@ static int nfp_ioctl(struct inode *inode,
 			   "%s: ensure reading: read request with ifvers=%d addr=%p",
 			   __func__, ndev->ifvers, (void *)addr);
 
-		ne = ndev->cmddev->ensure_reading(addr, len, ndev->cmdctx, 1);
+		ne = ndev->cmddev->ensure_reading(addr, len, ndev->cmdctx);
 
 		if (ne != 0) {
 			dev_err(&ndev->pcidev->dev,
 				"%s: ensure reading: read request failed",
 				__func__);
 			del_timer_sync(&ndev->rd_timer);
-			/* make sure that del_timer_sync is done before
+			/*
+			 * make sure that del_timer_sync is done before
 			 * we clear rd_outstanding
 			 */
 			smp_mb__before_atomic();
@@ -786,11 +788,6 @@ static int nfp_ioctl(struct inode *inode,
 
 		nfp_set_ifvers(ndev, vers);
 	} break;
-
-	case NFDEV_IOCTL_CHUPDATE:
-		dev_err(&ndev->pcidev->dev,
-			"%s: channel update ignored", __func__);
-		break;
 
 	case NFDEV_IOCTL_STATS: {
 		int err = -EIO;
@@ -897,12 +894,12 @@ static int nfp_ioctl(struct inode *inode,
 }
 
 /**
- * Performs an NSHIELD SOLO device unlocked IOCTL call.
+ * nfp_unlocked_ioctl - Performs an NSHIELD SOLO device unlocked IOCTL call.
+ * @file:	device file pointer
+ * @cmd:	command id
+ * @arg:	command argument
  *
- * @param file  device file pointer.
- * @param cmd   command id.
- * @param arg   command argument.
- * @returns 0 if successful.
+ * RETURNS: 0 if successful or other value if error.
  */
 static long nfp_unlocked_ioctl(struct file *file,
 			       u32 cmd,
@@ -958,15 +955,15 @@ static irqreturn_t nfp_isr(int irq, void *context)
 }
 
 /**
- * Opens an NSHIELD SOLO device.
+ * nfp_open - Opens an NSHIELD SOLO device.
+ * @inode:	device inode pointer
+ * @file:	device file pointer
  *
  * The kernel calls this function when a user tries to open an
  * NSHIELD SOLO device.  It is an error to attempt to open an
  * already opened device.
  *
- * @param inode device inode pointer.
- * @param file device file pointer.
- * @return 0 if successful.
+ * RETURNS: 0 if successful or other value if error.
  */
 static int nfp_open(struct inode *inode, struct file *file)
 {
@@ -1032,15 +1029,15 @@ static int nfp_open(struct inode *inode, struct file *file)
 }
 
 /**
- * Releases an NSHIELD SOLO device.
+ * nfp_release - Releases an NSHIELD SOLO device.
+ * @node:	device inode pointer
+ * @file:	device file pointer
  *
  * The kernel calls this function when a user tries to close an
  * NSHIELD SOLO device.  It is an error to attempt to close an
  * already closed device.
  *
- * @param node device inode pointer.
- * @param file  device file pointer.
- * @returns 0 if successful.
+ * RETURNS: 0 if successful or other value if error.
  */
 static int nfp_release(struct inode *node, struct file *file)
 {
@@ -1123,12 +1120,10 @@ static const struct file_operations nfp_fops = { .owner = THIS_MODULE,
 };
 
 /**
- * @addtogroup devmgr
  * NSHIELD SOLO device management.
- * @{
  */
 
-/* device setup -------------------------------------------------- */
+/* device setup */
 
 static void nfp_dev_destroy(struct nfp_dev *ndev, struct pci_dev *pci_dev)
 {
@@ -1275,15 +1270,16 @@ fail_continue:
 	return 0;
 }
 
-/* device probing ---------------------------------------------------------- */
+/* device probing */
 
 /**
- * Adds a PCI device to the module. The PCI subsystem calls this function
- * when a PCI device is found.
+ * nfp_pci_probe - Adds a PCI device to the module.
+ * @pcidev:	PCI device
+ * @id:	PCI device ids
  *
- * @param pcidev PCI device.
- * @param id PCI device ids.
- * @returns 0 if successful.
+ * The PCI subsystem calls this function when a PCI device is found.
+ *
+ * RETURNS: 0 if successful or other value if error.
  */
 static int nfp_pci_probe(struct pci_dev *pcidev,
 			 struct pci_device_id const *id)
@@ -1376,11 +1372,12 @@ probe_err:
 }
 
 /**
- * Removes a PCI device from the module. The PCI subsystem calls this function
- * when a PCI device is removed.
+ * nfp_pci_remove - Removes a PCI device from the module.
+ * @pcidev:	PCI device
  *
- * @param pcidev PCI device.
- * @returns 0 if successful.
+ * The PCI subsystem calls this function when a PCI device is removed.
+ *
+ * RETURNS: 0 if successful or other value if error.
  */
 static void nfp_pci_remove(struct pci_dev *pcidev)
 {
@@ -1427,16 +1424,22 @@ static void nfp_pci_remove(struct pci_dev *pcidev)
  */
 static struct pci_device_id nfp_pci_tbl[] = {
 	{
-		PCI_VENDOR_ID_INTEL, PCI_DEVICE_ID_INTEL_21555,
-		PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1, 0,
-		0, /* Ignore class */
-		0 /* Index into nfp_drvlist */
+		PCI_DEVICE_SUB(PCI_VENDOR_ID_INTEL,
+			       PCI_DEVICE_ID_INTEL_21555,
+			       PCI_VENDOR_ID_NCIPHER,
+			       PCI_SUBSYSTEM_ID_NFAST_REV1),
+		.class = 0, /* Ignore class */
+		.class_mask = 0, /* Ignore class mask */
+		.driver_data = 0 /* Index into nfp_drvlist */
 	},
 	{
-		PCI_VENDOR_ID_FREESCALE, PCI_DEVICE_ID_FREESCALE_T1022,
-		PCI_VENDOR_ID_NCIPHER, PCI_SUBSYSTEM_ID_NFAST_REV1, 0,
-		0, /* Ignore class */
-		1 /* Index into nfp_drvlist */
+		PCI_DEVICE_SUB(PCI_VENDOR_ID_FREESCALE,
+			       PCI_DEVICE_ID_FREESCALE_T1022,
+			       PCI_VENDOR_ID_NCIPHER,
+			       PCI_SUBSYSTEM_ID_NFAST_REV1),
+		.class = 0, /* Ignore class */
+		.class_mask = 0, /* Ignore class mask */
+		.driver_data = 1 /* Index into nfp_drvlist */
 	},
 	{
 		0,
@@ -1452,9 +1455,9 @@ static struct pci_driver nfp_pci_driver = { .name = "nshield_solo",
 					    .remove = nfp_pci_remove,
 					    .id_table = nfp_pci_tbl };
 
-/*--------------------*/
-/*  init              */
-/*--------------------*/
+/**
+ * initialisation
+ */
 
 static int nfp_init(void)
 {
@@ -1481,8 +1484,6 @@ static int nfp_init(void)
 	return pci_register_driver(&nfp_pci_driver);
 }
 
-/** @} */
-
 /**
  * Initializes this NSHIELD SOLO kernel module.
  */
@@ -1507,7 +1508,7 @@ static void __exit nfp_module_exit(void)
 	/* unregister pci driver */
 
 	pci_unregister_driver(&nfp_pci_driver);
-	/* ... which triggers device removals */
+	/* this triggers device removals */
 
 	class_destroy(nfp_class);
 

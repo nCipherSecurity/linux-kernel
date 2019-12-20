@@ -45,11 +45,11 @@
  */
 #define NFPCI_RAM_MINSIZE		    0x00100000
 #define NFPCI_RAM_MINSIZE_JOBS		    0x00020000 /* standard jobs only */
-#define NFPCI_RAM_MINSIZE_KERN		    0x00040000 /* standard and
-							* kernel jobs
-							*/
+/* standard and kernel jobs */
+#define NFPCI_RAM_MINSIZE_KERN		    0x00040000
 
-/* Offsets within shared memory space.
+/*
+ * Offsets within shared memory space.
  * The following main regions are:
  *   jobs input area
  *   jobs output area
@@ -279,8 +279,7 @@ struct nfpcmd_dev {
 			   struct nfp_dev *ctx);
 	int (*read_block)(char __user *ublock,
 			  int len, struct nfp_dev *ctx, int *rcount);
-	int (*ensure_reading)(dma_addr_t addr,
-			      int len, struct nfp_dev *ctx, int lock_flag);
+	int (*ensure_reading)(dma_addr_t addr, int len, struct nfp_dev *ctx);
 	int (*setcontrol)(const struct nfdev_control_str *control,
 			  struct nfp_dev *ctx); /* may be NULL */
 	int (*getstatus)(struct nfdev_status_str *status,

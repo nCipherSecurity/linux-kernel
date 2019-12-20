@@ -75,22 +75,21 @@
 
 #define FSL_MAGIC 0x12345678u
 
-/** Monitor firmware supports MOI control and error reporting */
+/* Monitor firmware supports MOI control and error reporting */
 #define NFDEV_STATUS_MONITOR_MOI 0x0001
 
-/** Application firmware supports MOI control and error reporting */
+/* Application firmware supports MOI control and error reporting */
 #define NFDEV_STATUS_APPLICATION_MOI 0x0002
 
-/** Application firmware running and supports error reporting */
+/* Application firmware running and supports error reporting */
 #define NFDEV_STATUS_APPLICATION_RUNNING 0x0004
 
 /**
- * Writes a 32 bit word across PCI to the FSL card.
- *
- * @param ndev command device.
- * @param bar base address region id.
- * @param offset offset in bytes from base address.
- * @param value 32 bit value being written.
+ * fsl_outl - Writes a 32 bit word across PCI to the FSL card.
+ * @ndev:	command device
+ * @bar:	base address region id
+ * @offset:	offset in bytes from base address
+ * @value:	32 bit value being written
  */
 static inline void fsl_outl(struct nfp_dev *ndev, int offset, u32 value)
 {
@@ -99,12 +98,12 @@ static inline void fsl_outl(struct nfp_dev *ndev, int offset, u32 value)
 }
 
 /**
- * Reads a 32 bit word across PCI from the FSL card.
+ * fsl_inl - Reads a 32 bit word across PCI from the FSL card.
+ * @ndev:	command device
+ * @bar:	base address region id
+ * @offset:	offset in bytes from base address
  *
- * @param ndev command device.
- * @param bar base address region id.
- * @param offset offset in bytes from base address.
- * @returns 32 bit value.
+ * RETURNS: 32 bit value.
  */
 static inline uint32_t fsl_inl(struct nfp_dev *ndev, int offset)
 {

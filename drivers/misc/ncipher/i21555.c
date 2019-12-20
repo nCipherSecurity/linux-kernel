@@ -9,9 +9,10 @@
 #include "solo.h"
 #include "i21555.h"
 
-/* pci fixed length accessors. ----------------------------------
- * The below functions are used predominantly
- * to access CSR registers in pci memory space.
+/*
+ * pci fixed length accessors.
+ * The below functions are used predominantly to access CSR registers in pci
+ * memory space.
  */
 static u32 nfp_inl(struct nfp_dev *ndev, int bar, int offset)
 {
@@ -49,12 +50,15 @@ static int nfp_config_inl(struct nfp_dev *ndev, int offset, u32 *res)
 	return 0;
 }
 
-/* started ------------------------------------------------------
+/**
+ * i21555_started - Check that device is ready to talk
+ * @ndev:	common device
  *
- * Check that device is ready to talk, by checking that
- * the i21555 has master enabled on its secondary interface
+ * Checks that device is ready to talk by checking that the i21555 has master
+ * enabled on its secondary interface
+ *
+ * RETURNS: 0 if ready or other value if error.
  */
-
 static int i21555_started(struct nfp_dev *ndev)
 {
 	u32 tmp32;
@@ -88,8 +92,12 @@ static int i21555_started(struct nfp_dev *ndev)
 	return ne;
 }
 
-/* create ------------------------------------------------------- */
-
+/**
+ * i21555_create - Resets the i21555 device.
+ * @ndev:	common device
+ *
+ * RETURNS: 0 if successful or other value if error.
+ */
 static int i21555_create(struct nfp_dev *ndev)
 {
 	/* check for device */
@@ -116,8 +124,12 @@ static int i21555_create(struct nfp_dev *ndev)
 	return 0;
 }
 
-/* stop ------------------------------------------------------- */
-
+/**
+ * i21555_destroy - Destroys an i21555 device.
+ * @ctx:	device context (always the device itself)
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_destroy(struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
@@ -147,8 +159,12 @@ static int i21555_destroy(struct nfp_dev *ctx)
 	return 0;
 }
 
-/* open ------------------------------------------------------- */
-
+/**
+ * i21555_open - Opens an i21555 device
+ * @ctx:	device context (always the device itself)
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_open(struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
@@ -164,8 +180,12 @@ static int i21555_open(struct nfp_dev *ctx)
 	return 0;
 }
 
-/* close ------------------------------------------------------- */
-
+/**
+ * i21555_close - Closes an i21555 device
+ * @ctx:	device context (always the device itself)
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_close(struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
@@ -181,8 +201,13 @@ static int i21555_close(struct nfp_dev *ctx)
 	return 0;
 }
 
-/* isr ------------------------------------------------------- */
-
+/**
+ * i21555_isr - Handles an interrupt from the i21555 device.
+ * @ctx:	device context (always the device itself)
+ * @handled:	set non-zero by this routine if interrupt considered handled
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_isr(struct nfp_dev *ctx, int *handled)
 {
 	struct nfp_dev *ndev = ctx;
@@ -207,7 +232,8 @@ static int i21555_isr(struct nfp_dev *ctx, int *handled)
 		return -ENOMEM;
 	}
 
-	/* This interrupt may not be from our module, so check that it
+	/*
+	 * This interrupt may not be from our module, so check that it
 	 * actually is us before handling it.
 	 */
 	doorbell = nfp_inw(ndev, CSR_BAR, I21555_OFFSET_DOORBELL_PRI_SET);
@@ -262,8 +288,15 @@ static int i21555_isr(struct nfp_dev *ctx, int *handled)
 	return 0;
 }
 
-/* write ------------------------------------------------------- */
-
+/**
+ * i21555_write - Initiates a device write request.
+ * @addr:	32-bit bus address used by DMA to pull request to device
+ * @block:	data buffer to copy from
+ * @len:	length of data to copy
+ * @ctx:	device context (always the device itself)
+ *
+ * RETURNS: 0 if write successful or other value if error.
+ */
 static int i21555_write(u32 addr, const char *block, int len,
 			struct nfp_dev *ctx)
 {
@@ -340,8 +373,15 @@ static int i21555_write(u32 addr, const char *block, int len,
 	return 0;
 }
 
-/* read ------------------------------------------------------- */
-
+/**
+ * i21555_read - Reads a device read reply.
+ * @block:	data buffer to copy into
+ * @len:	maximum length of data to copy
+ * @ctx:	device context (always the device itself)
+ * @rcnt:	returned actual # of bytes copied
+ *
+ * RETURNS: 0 if read initiated or other value if error.
+ */
 static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 {
 	struct nfp_dev *ndev = ctx;
@@ -397,10 +437,15 @@ static int i21555_read(char *block, int len, struct nfp_dev *ctx, int *rcount)
 	return 0;
 }
 
-/* ensure reading -------------------------------------------------- */
-
-static int i21555_ensure_reading(dma_addr_t addr,
-				 int len, struct nfp_dev *ctx, int lock_flag)
+/**
+ * i21555_ensure_reading - Initiates a device read request.
+ * @addr:	32-bit bus address used by DMA to push reply from device
+ * @len:	maximum length data to return
+ * @ctx:	device context (always the device itself)
+ *
+ * RETURNS: 0 if read initiated or other value if error.
+ */
+static int i21555_ensure_reading(dma_addr_t addr, int len, struct nfp_dev *ctx)
 {
 	struct nfp_dev *ndev = ctx;
 	__le32 hdr[3];
@@ -476,8 +521,16 @@ static int i21555_ensure_reading(dma_addr_t addr,
 	return 0;
 }
 
-/* set control register ----------------------------------------- */
-
+/**
+ * i21555_set_control - Sets control data.
+ * @control:	control string to copy from
+ * @ctx:	device context (always the device itself)
+ *
+ * The device control register is writen directly. No doorbell style handshake
+ * is used.
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_set_control(const struct nfdev_control_str *control,
 			      struct nfp_dev *ctx)
 {
@@ -500,8 +553,20 @@ static int i21555_set_control(const struct nfdev_control_str *control,
 	return 0;
 }
 
-/* get status/error registers ----------------------------------- */
-
+/**
+ * i21555_get_status - Returns status data.
+ * @status:	string to copy into
+ * @ctx:	device context (always the device itself)
+ *
+ * The device status registers are read immediately. No doorbell style
+ * handshake is used. Without explicit synchronization, it is possible
+ * that an inconsistent state may be returned if the status is being
+ * updated by the firmware while simultaneously being read by the host.
+ * For example, the call could return an updated status word with a not
+ * as yet updated error string. This is likely a degenerate case.
+ *
+ * RETURNS: 0 if successful, other value if error.
+ */
 static int i21555_get_status(struct nfdev_status_str *status,
 			     struct nfp_dev *ctx)
 {
@@ -520,6 +585,11 @@ static int i21555_get_status(struct nfdev_status_str *status,
 			"%s: null BAR[%d]", __func__, CSR_BAR);
 		return -ENOMEM;
 	}
+
+	/*
+	 * get status (read immediately with no explicit synchronization
+	 * with the firmware)
+	 */
 	status->status = nfp_inl(ndev,
 				 CSR_BAR, I21555_SCRATCHPAD_REGISTER_STATUS);
 	error[0] = nfp_inl(ndev, CSR_BAR, I21555_SCRATCHPAD_REGISTER_ERROR_LO);
@@ -527,7 +597,7 @@ static int i21555_get_status(struct nfdev_status_str *status,
 	return 0;
 }
 
-/* command device structure ------------------------------------- */
+/* command device structure */
 
 const struct nfpcmd_dev i21555_cmddev = {
 	.name = "nCipher nShield Solo",
